@@ -4,21 +4,26 @@ import { StyleSheet, TextInput, View } from 'react-native'
 
 import { FAB_CLEARANCE } from '@/components/EmergencyFab'
 import { AppText } from '@/components/ui/AppText'
-import { GroupedCard } from '@/components/ui/GroupedCard'
 import { Icon } from '@/components/ui/Icon'
 import { IconTile } from '@/components/ui/IconTile'
-import { PageHeader } from '@/components/ui/Layout'
+import { GroupedCard } from '@/components/ui/GroupedCard'
 import { ListRow } from '@/components/ui/ListRow'
+import { Note, PageHeader } from '@/components/ui/Layout'
 import { Screen } from '@/components/ui/Screen'
 import { Touchable } from '@/components/ui/Touchable'
-import { guideKindLabel, guides, type GuideKind } from '@/data/guides'
+import { guides, type GuideKind } from '@/data/guides'
 import { brand, radius, space, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
 const filters: { label: string; value: GuideKind | 'all' }[] = [
-  { label: 'All', value: 'all' },
+  { label: 'All guides', value: 'all' },
   { label: 'Disasters', value: 'disaster' },
   { label: 'First aid', value: 'aid' },
+]
+
+const sections: { title: string; kind: GuideKind }[] = [
+  { title: 'Disaster preparedness', kind: 'disaster' },
+  { title: 'First aid', kind: 'aid' },
 ]
 
 export default function GuidesScreen() {
@@ -30,17 +35,19 @@ export default function GuidesScreen() {
     return guides.filter((guide) =>
       (filter === 'all' || guide.kind === filter) &&
       (!needle || guide.name.toLowerCase().includes(needle) || guide.keywords.some((keyword) => keyword.includes(needle))))
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [query, filter])
 
   return (
     <Screen bottomSpace={FAB_CLEARANCE}>
-      <PageHeader title="Safety library" subtitle="Verified guides saved on your device" />
-      <View style={[styles.search, { backgroundColor: colors.surface }]}>
+      <PageHeader title="Guides" subtitle="Preparedness and first aid, organized for quick reference." />
+
+      <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.line }]}>
         <Icon name="search" size={20} color={colors.inkSoft} />
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search disasters or first aid"
+          placeholder="Search guides"
           placeholderTextColor={colors.inkSoft}
           returnKeyType="search"
           clearButtonMode="while-editing"
@@ -48,7 +55,8 @@ export default function GuidesScreen() {
           style={[styles.input, { color: colors.ink, fontSize: typeRamp.body.fontSize * scale }]}
         />
       </View>
-      <View style={styles.filters} accessibilityRole="radiogroup">
+
+      <View style={styles.filters} accessibilityRole="radiogroup" accessibilityLabel="Guide categories">
         {filters.map((item) => {
           const active = filter === item.value
           return (
@@ -57,36 +65,57 @@ export default function GuidesScreen() {
               onPress={() => setFilter(item.value)}
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
-              style={[styles.chip, { borderColor: active ? brand.primary : colors.line, backgroundColor: active ? brand.primary : 'transparent' }]}
+              style={[styles.chip, { backgroundColor: active ? brand.primary : colors.surface, borderColor: active ? brand.primary : colors.line }]}
             >
               <AppText variant="caption" weight="600" style={active ? { color: brand.onPrimary } : undefined}>{item.label}</AppText>
             </Touchable>
           )
         })}
       </View>
-      {results.length ? (
-        <GroupedCard>
-          {results.map((guide) => (
-            <ListRow
-              key={guide.id}
-              title={guide.name}
-              subtitle={`${guideKindLabel[guide.kind]} · Available offline`}
-              leading={<IconTile icon={guide.icon} tone={guide.tone} size="md" />}
-              onPress={() => router.push({ pathname: '/guide/[id]', params: { id: guide.id } })}
-            />
-          ))}
-        </GroupedCard>
-      ) : (
-        <AppText tone="soft" align="center" style={styles.empty}>No guides match “{query.trim()}”.</AppText>
-      )}
+
+      <View style={styles.results}>
+        {sections.map((section) => {
+          const items = results.filter((guide) => guide.kind === section.kind)
+          if (!items.length) return null
+
+          return (
+            <View key={section.kind} style={styles.section}>
+              <AppText variant="eyebrow" tone="soft" style={styles.sectionTitle}>{section.title}</AppText>
+              <GroupedCard>
+                {items.map((guide) => (
+                  <ListRow
+                    key={guide.id}
+                    title={guide.name}
+                    subtitle={guide.detail}
+                    leading={<IconTile icon={guide.icon} tone={guide.tone} size="sm" />}
+                    onPress={() => router.push({ pathname: '/guide/[id]', params: { id: guide.id } })}
+                    accessibilityLabel={`Open ${guide.name}, ${section.title.toLowerCase()} guide`}
+                  />
+                ))}
+              </GroupedCard>
+            </View>
+          )
+        })}
+        {!results.length ? (
+          <View style={[styles.empty, { backgroundColor: colors.surface, borderColor: colors.line }]}>
+            <Icon name="search" size={22} color={colors.inkSoft} />
+            <AppText variant="caption" tone="soft" align="center">No guides match “{query.trim()}”. Try another search.</AppText>
+          </View>
+        ) : null}
+      </View>
+
+      <Note>Guides are general learning content. Follow local authorities and seek professional care when needed.</Note>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  search: { height: 48, borderRadius: 14, paddingHorizontal: space[3], flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  search: { height: 48, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: space[3], flexDirection: 'row', alignItems: 'center', gap: space[2] },
   input: { flex: 1, minWidth: 0, height: '100%' },
-  filters: { flexDirection: 'row', gap: space[2], marginTop: space[3], marginBottom: space[4] },
-  chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 6, minHeight: 32, justifyContent: 'center' },
-  empty: { marginTop: space[6] },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2], marginTop: space[3], marginBottom: space[4] },
+  chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 6, minHeight: 36, justifyContent: 'center' },
+  results: { gap: space[5] },
+  section: { gap: space[2] },
+  sectionTitle: { marginHorizontal: space[1] },
+  empty: { minHeight: 160, alignItems: 'center', justifyContent: 'center', gap: space[3], padding: space[6], borderWidth: 1, borderRadius: radius.group },
 })

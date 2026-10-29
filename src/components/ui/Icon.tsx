@@ -7,6 +7,7 @@ export type IconName =
   | 'storm' | 'flood' | 'landslide' | 'quake' | 'fire' | 'bleeding' | 'burn' | 'choking' | 'fracture'
   | 'sun' | 'moon' | 'system' | 'send' | 'arrowLeft' | 'check' | 'profile' | 'heart' | 'settings'
   | 'download' | 'restore' | 'trash' | 'camera' | 'image' | 'close'
+  | 'cloud' | 'rain' | 'wind' | 'pin' | 'eye' | 'calendar'
 
 /** Stroke icon set ported 1:1 from the web prototype (24×24 grid, 1.8 stroke). */
 const paths: Record<IconName, ReactNode> = {
@@ -43,6 +44,12 @@ const paths: Record<IconName, ReactNode> = {
   camera: <><Path d="M8 5 6.5 8H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2.5L16 5Z"/><Circle cx="12" cy="14" r="4"/></>,
   image: <><Rect x="3" y="3" width="18" height="18" rx="3"/><Circle cx="9" cy="9" r="2"/><Path d="m21 15-5-5L5 21"/></>,
   close: <Path d="M6 6l12 12M18 6 6 18"/>,
+  cloud: <Path d="M6 18a4.5 4.5 0 0 1-.3-9A6.5 6.5 0 0 1 18 8a5 5 0 0 1 0 10Z"/>,
+  rain: <><Path d="M6 14a4 4 0 0 1 0-8 6 6 0 0 1 11 1 3.5 3.5 0 0 1 1 7"/><Path d="m8 17-1 3m6-3-1 3m6-3-1 3"/></>,
+  wind: <><Path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h6a3 3 0 1 1-3 3"/></>,
+  pin: <><Path d="M19 10c0 5-7 12-7 12S5 15 5 10a7 7 0 1 1 14 0Z"/><Circle cx="12" cy="10" r="2"/></>,
+  eye: <><Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><Circle cx="12" cy="12" r="3"/></>,
+  calendar: <><Rect x="3" y="5" width="18" height="16" rx="2"/><Path d="M16 3v4M8 3v4M3 10h18"/></>,
 }
 
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color: ColorValue }) {
