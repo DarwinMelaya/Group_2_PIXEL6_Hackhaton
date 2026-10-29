@@ -10,7 +10,9 @@ import { GroupedCard } from '@/components/ui/GroupedCard'
 import { IconTile } from '@/components/ui/IconTile'
 import { Banner, Note, PageHeader } from '@/components/ui/Layout'
 import { Screen } from '@/components/ui/Screen'
-import { profileGroups, type ProfileField, type ProfileInfo } from '@/data/profile'
+import { BARANGAYS } from '@/data/barangays'
+import { profileGroups, type Municipality, type ProfileField, type ProfileInfo } from '@/data/profile'
+import { validateField, validateProfile } from '@/data/profileValidation'
 import { getProfile, saveProfile } from '@/db/profile'
 import { NICKNAME_MAX_LENGTH } from '@/db/settings'
 import { useSettings } from '@/providers/SettingsProvider'
@@ -29,17 +31,41 @@ export default function OnboardingScreen() {
   const [draft, setDraft] = useState<ProfileInfo>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const trimmedNickname = nickname.trim()
 
-  const updateField = (key: string, value: string) => setDraft((current) => ({
-    ...current,
-    [key]: value,
-    ...(key === 'municipality' && value !== current.municipality ? { barangay: '' } : {}),
-  }))
+  const updateField = (key: string, value: string) => {
+    const next: ProfileInfo = {
+      ...draft,
+      [key]: value,
+      ...(key === 'municipality' && value !== draft.municipality ? { barangay: '' } : {}),
+    }
+    setDraft(next)
+    setErrors((current) => {
+      const updated = { ...current }
+      const revalidate = (name: string) => {
+        const message = validateField(name, next[name] ?? '', next)
+        if (message) updated[name] = message
+        else delete updated[name]
+      }
+      if (key in updated) revalidate(key)
+      if (key === 'municipality') delete updated.barangay
+      if (key === 'phone' && 'contactPhone' in updated) revalidate('contactPhone')
+      return updated
+    })
+  }
 
   const complete = async (withDetails: boolean) => {
     if (saving) return
+    if (withDetails) {
+      const found = validateProfile(draft, ABOUT_KEYS)
+      if (Object.keys(found).length) {
+        setErrors(found)
+        setError('Please fix the highlighted fields.')
+        return
+      }
+    }
     setSaving(true)
     setError('')
     try {
@@ -111,7 +137,7 @@ export default function OnboardingScreen() {
             <PageHeader title="A few details" subtitle="Helps responders and the app help you. You can skip this and add it later in Profile." />
             <GroupedCard>
               {aboutFields.map((field) => (
-                <ProfileFieldInput key={field.key} field={field} value={draft[field.key] ?? ''} onChange={(value) => updateField(field.key, value)} />
+                <ProfileFieldInput key={field.key} field={field} value={draft[field.key] ?? ''} error={errors[field.key]} options={field.key === 'barangay' ? BARANGAYS[draft.municipality as Municipality] : undefined} onChange={(value) => updateField(field.key, value)} />
               ))}
             </GroupedCard>
             {error ? <Banner text={error} tone="error" /> : null}

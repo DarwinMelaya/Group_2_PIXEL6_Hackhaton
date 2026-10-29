@@ -144,7 +144,7 @@ export default function SettingsScreen() {
                 )
               })}
             </View>
-            <AppText tone="soft" style={styles.preview}>Clear guidance, whenever you need it.</AppText>
+            <AppText tone="soft" align="center" style={styles.preview}>Clear guidance, whenever you need it.</AppText>
           </View>
         </View>
       </View>
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   previewHalf: { flex: 1, gap: space[2], paddingVertical: space[3], paddingHorizontal: 6 },
   previewBar: { height: 9, borderRadius: space[1] },
   textSize: { marginTop: space[5], paddingTop: space[4], borderTopWidth: StyleSheet.hairlineWidth },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: space[2] },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: space[2] },
   segmented: { flexDirection: 'row', gap: space[1], padding: space[1], borderRadius: radius.md, marginTop: space[3] },
   segment: { flex: 1, minHeight: touchTarget, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   segmentSelected: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },

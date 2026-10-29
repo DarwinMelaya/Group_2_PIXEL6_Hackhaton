@@ -6,7 +6,7 @@ export type IconName =
   | 'home' | 'book' | 'chat' | 'kit' | 'phone' | 'wifiOff' | 'search' | 'chevron' | 'shield'
   | 'storm' | 'flood' | 'landslide' | 'quake' | 'fire' | 'bleeding' | 'burn' | 'choking' | 'fracture'
   | 'sun' | 'moon' | 'system' | 'send' | 'arrowLeft' | 'check' | 'profile' | 'heart' | 'settings'
-  | 'download' | 'restore' | 'trash' | 'camera' | 'image' | 'close'
+  | 'download' | 'restore' | 'trash' | 'camera' | 'image' | 'close' | 'calendar' | 'chevronDown'
 
 /** Stroke icon set ported 1:1 from the web prototype (24×24 grid, 1.8 stroke). */
 const paths: Record<IconName, ReactNode> = {
@@ -43,6 +43,8 @@ const paths: Record<IconName, ReactNode> = {
   camera: <><Path d="M8 5 6.5 8H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2.5L16 5Z"/><Circle cx="12" cy="14" r="4"/></>,
   image: <><Rect x="3" y="3" width="18" height="18" rx="3"/><Circle cx="9" cy="9" r="2"/><Path d="m21 15-5-5L5 21"/></>,
   close: <Path d="M6 6l12 12M18 6 6 18"/>,
+  calendar: <><Rect x="3" y="5" width="18" height="16" rx="2"/><Path d="M16 3v4M8 3v4M3 11h18"/></>,
+  chevronDown: <Path d="m6 9 6 6 6-6"/>,
 }
 
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color: ColorValue }) {

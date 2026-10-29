@@ -44,6 +44,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GabAI uses your location to show emergency hotlines for the barangay you are in."
+        }
+      ],
       "llama.rn"
     ],
     "experiments": {

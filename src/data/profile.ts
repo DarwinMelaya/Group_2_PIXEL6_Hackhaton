@@ -3,6 +3,9 @@ import type { KeyboardTypeOptions } from 'react-native'
 import type { IconName } from '@/components/ui/Icon'
 
 export const MUNICIPALITIES = ['Boac', 'Buenavista', 'Gasan', 'Mogpog', 'Santa Cruz', 'Torrijos'] as const
+export type Municipality = (typeof MUNICIPALITIES)[number]
+
+export const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', "Don't know"] as const
 
 export const PROFILE_VALUE_MAX_LENGTH = 180
 
@@ -11,7 +14,7 @@ export type ProfileField = {
   label: string
   placeholder?: string
   keyboardType?: KeyboardTypeOptions
-  input?: 'text' | 'municipality'
+  input?: 'text' | 'municipality' | 'barangay' | 'bloodType' | 'date' | 'phone'
 }
 
 export type ProfileGroup = {
@@ -30,10 +33,10 @@ export const profileGroups: ProfileGroup[] = [
     icon: 'profile',
     fields: [
       { key: 'name', label: 'Full name' },
-      { key: 'birthday', label: 'Date of birth', placeholder: 'YYYY-MM-DD', keyboardType: 'numbers-and-punctuation' },
-      { key: 'phone', label: 'Phone number', keyboardType: 'phone-pad' },
-      { key: 'municipality', label: 'Municipality', input: 'municipality' },
-      { key: 'barangay', label: 'Barangay', placeholder: 'Enter your barangay' },
+      { key: 'birthday', label: 'Date of birth', placeholder: 'YYYY-MM-DD', input: 'date' },
+      { key: 'phone', label: 'Phone number', placeholder: 'e.g. 0917 123 4567', input: 'phone' },
+      { key: 'municipality', label: 'Municipality', placeholder: 'Choose your municipality', input: 'municipality' },
+      { key: 'barangay', label: 'Barangay', placeholder: 'Choose your barangay', input: 'barangay' },
     ],
   },
   {
@@ -42,7 +45,7 @@ export const profileGroups: ProfileGroup[] = [
     description: 'Important details about your health.',
     icon: 'heart',
     fields: [
-      { key: 'blood', label: 'Blood type' },
+      { key: 'blood', label: 'Blood type', placeholder: 'Choose your blood type', input: 'bloodType' },
       { key: 'allergies', label: 'Allergies' },
       { key: 'conditions', label: 'Medical conditions' },
       { key: 'medications', label: 'Current medications' },
@@ -56,7 +59,7 @@ export const profileGroups: ProfileGroup[] = [
     fields: [
       { key: 'contactName', label: 'Contact name' },
       { key: 'relationship', label: 'Relationship' },
-      { key: 'contactPhone', label: 'Phone number', keyboardType: 'phone-pad' },
+      { key: 'contactPhone', label: 'Phone number', placeholder: 'e.g. 0917 123 4567', input: 'phone' },
     ],
   },
 ]

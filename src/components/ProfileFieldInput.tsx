@@ -1,54 +1,69 @@
 import { StyleSheet, TextInput, View } from 'react-native'
 
+import { DateField } from '@/components/DateField'
+import { SelectField } from '@/components/SelectField'
 import { AppText } from '@/components/ui/AppText'
-import { Touchable } from '@/components/ui/Touchable'
-import { MUNICIPALITIES, PROFILE_VALUE_MAX_LENGTH, type ProfileField } from '@/data/profile'
-import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
+import { BLOOD_TYPES, MUNICIPALITIES, PROFILE_VALUE_MAX_LENGTH, type ProfileField } from '@/data/profile'
+import { radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
-/** Editing row for a profile field: municipality chip radio group or a text input. */
-export function ProfileFieldInput({ field, value, onChange }: { field: ProfileField; value: string; onChange: (value: string) => void }) {
+type ProfileFieldInputProps = {
+  field: ProfileField
+  value: string
+  onChange: (value: string) => void
+  options?: readonly string[]
+  error?: string
+}
+
+/** Editing row for a profile field: select sheet, date field, or text input. */
+export function ProfileFieldInput({ field, value, onChange, options, error }: ProfileFieldInputProps) {
   const { colors, scale } = useTheme()
+  const labelTone = error ? 'danger' : 'soft'
   return (
     <View style={styles.row}>
-      <AppText variant="small" tone="soft">{field.label}</AppText>
-      {field.input === 'municipality' ? (
-        <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={field.label}>
-          {MUNICIPALITIES.map((name) => {
-            const selected = value === name
-            return (
-              <Touchable
-                key={name}
-                onPress={() => onChange(name)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                style={[styles.chip, { borderColor: selected ? brand.primary : colors.line, backgroundColor: selected ? brand.primary : 'transparent' }]}
-              >
-                <AppText variant="caption" weight="600" style={selected ? { color: brand.onPrimary } : undefined}>{name}</AppText>
-              </Touchable>
-            )
-          })}
-        </View>
+      <AppText variant="small" tone={labelTone}>{field.label}</AppText>
+      {field.input === 'municipality' || field.input === 'bloodType' ? (
+        <SelectField
+          label={field.label}
+          value={value}
+          placeholder={field.placeholder ?? 'Choose'}
+          options={field.input === 'municipality' ? MUNICIPALITIES : BLOOD_TYPES}
+          onChange={onChange}
+          error={!!error}
+        />
+      ) : field.input === 'barangay' ? (
+        <SelectField
+          label={field.label}
+          value={value}
+          placeholder={field.placeholder ?? 'Choose'}
+          options={options ?? []}
+          onChange={onChange}
+          disabled={!options?.length}
+          disabledHint="Choose a municipality first"
+          error={!!error}
+        />
+      ) : field.input === 'date' ? (
+        <DateField label={field.label} value={value} onChange={onChange} error={!!error} />
       ) : (
         <TextInput
           value={value}
           onChangeText={onChange}
           placeholder={field.placeholder ?? 'Add information'}
           placeholderTextColor={colors.inkSoft}
-          keyboardType={field.keyboardType}
+          keyboardType={field.input === 'phone' ? 'phone-pad' : field.keyboardType}
           autoComplete="off"
           maxLength={PROFILE_VALUE_MAX_LENGTH}
           accessibilityLabel={field.label}
-          style={[styles.input, { color: colors.ink, fontSize: typeRamp.body.fontSize * scale }]}
+          style={[styles.input, { color: colors.ink, fontSize: typeRamp.body.fontSize * scale }, error && { borderColor: colors.danger, borderWidth: 1, paddingHorizontal: space[3] }]}
         />
       )}
+      {error ? <AppText variant="small" tone="danger" accessibilityLiveRegion="polite" style={styles.error}>{error}</AppText> : null}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   row: { gap: space[1], minHeight: 54, paddingHorizontal: space[4], paddingVertical: space[3] },
-  input: { minHeight: touchTarget, paddingVertical: 0 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2], paddingVertical: space[2] },
-  chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space[3], minHeight: 36, justifyContent: 'center' },
+  input: { minHeight: touchTarget, paddingVertical: 0, borderRadius: radius.md },
+  error: { marginTop: space[1] },
 })

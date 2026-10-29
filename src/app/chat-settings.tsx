@@ -165,7 +165,7 @@ export default function ChatSettingsScreen() {
                     <AppText weight="600">{option.label}</AppText>
                     {selected && <Icon name="check" size={16} color={colors.teal} />}
                   </View>
-                  <AppText variant="small" tone="soft">{option.detail}</AppText>
+                  <AppText variant="small" tone="soft" align="center">{option.detail}</AppText>
                 </Touchable>
               )
             })}
@@ -193,7 +193,7 @@ export default function ChatSettingsScreen() {
           ) : null}
         </View>
         <View style={[styles.card, styles.replyLength, { backgroundColor: colors.surface }]}>
-          <AppText>Reply length</AppText>
+          <AppText align="center">Reply length</AppText>
           <View style={[styles.segmented, { backgroundColor: colors.background }]} accessibilityRole="radiogroup" accessibilityLabel="Reply length">
             {REPLY_LENGTHS.map((option) => {
               const selected = settings.localReplyLength === option.value
@@ -251,11 +251,12 @@ export default function ChatSettingsScreen() {
                 accessibilityState={{ selected }}
                 style={styles.modelRow}
               >
+                <View style={styles.checkSlot} />
                 <View style={styles.modelBody}>
-                  <AppText weight="500">{option.label}</AppText>
-                  <AppText variant="small" tone="soft">{option.detail}</AppText>
+                  <AppText weight="500" align="center">{option.label}</AppText>
+                  <AppText variant="small" tone="soft" align="center">{option.detail}</AppText>
                 </View>
-                {selected && <Icon name="check" size={18} color={colors.teal} />}
+                <View style={styles.checkSlot}>{selected && <Icon name="check" size={18} color={colors.teal} />}</View>
               </Touchable>
             )
           })}
@@ -291,8 +292,8 @@ const styles = StyleSheet.create({
   section: { marginTop: space[6] },
   card: { borderRadius: radius.group, padding: space[4] },
   modeRow: { flexDirection: 'row', gap: space[2] },
-  modeOption: { flex: 1, gap: space[2], padding: space[3], borderWidth: 1, borderRadius: radius.group },
-  modeHeader: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  modeOption: { flex: 1, alignItems: 'center', gap: space[2], padding: space[3], borderWidth: 1, borderRadius: radius.group },
+  modeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2] },
   progressTrack: { height: 6, borderRadius: 3, marginTop: space[3], marginHorizontal: space[1], overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },
   actions: { flexDirection: 'row', marginTop: space[3] },
@@ -303,7 +304,8 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], paddingVertical: space[3] },
   models: { marginTop: space[3], padding: space[1] },
   modelRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], padding: space[3] },
-  modelBody: { flex: 1, minWidth: 0 },
+  modelBody: { flex: 1, minWidth: 0, alignItems: 'center' },
+  checkSlot: { width: 18, alignItems: 'center' },
   guideTitle: { marginBottom: space[2] },
   guideStep: { marginBottom: space[1] },
   footnote: { marginTop: space[2], marginHorizontal: space[4] },

@@ -9,7 +9,9 @@ import { GroupedCard } from '@/components/ui/GroupedCard'
 import { BackButton, Banner, Note, PageHeader, TextButton } from '@/components/ui/Layout'
 import { Screen } from '@/components/ui/Screen'
 import { ProfileFieldInput } from '@/components/ProfileFieldInput'
-import { getProfileGroup, type ProfileField, type ProfileInfo } from '@/data/profile'
+import { BARANGAYS } from '@/data/barangays'
+import { getProfileGroup, type Municipality, type ProfileField, type ProfileInfo } from '@/data/profile'
+import { validateField, validateProfile } from '@/data/profileValidation'
 import { getProfile, saveProfile } from '@/db/profile'
 import { space } from '@/theme/tokens'
 
@@ -22,6 +24,7 @@ export default function ProfileGroupScreen() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     getProfile(db).then(setProfile).catch(() => setError('Unable to load your profile.'))
@@ -36,13 +39,34 @@ export default function ProfileGroupScreen() {
     )
   }
 
-  const startEditing = () => { setDraft(profile); setEditing(true) }
-  const updateField = (key: string, value: string) => setDraft((current) => ({
-    ...current,
-    [key]: value,
-    ...(key === 'municipality' && value !== current.municipality ? { barangay: '' } : {}),
-  }))
+  const startEditing = () => { setDraft(profile); setErrors({}); setEditing(true) }
+  const updateField = (key: string, value: string) => {
+    const next: ProfileInfo = {
+      ...draft,
+      [key]: value,
+      ...(key === 'municipality' && value !== draft.municipality ? { barangay: '' } : {}),
+    }
+    setDraft(next)
+    setErrors((current) => {
+      const updated = { ...current }
+      const revalidate = (name: string) => {
+        const message = validateField(name, next[name] ?? '', next)
+        if (message) updated[name] = message
+        else delete updated[name]
+      }
+      if (key in updated) revalidate(key)
+      if (key === 'municipality') delete updated.barangay
+      if (key === 'phone' && 'contactPhone' in updated) revalidate('contactPhone')
+      return updated
+    })
+  }
   const save = async () => {
+    const found = validateProfile(draft, group.fields.map((field) => field.key))
+    if (Object.keys(found).length) {
+      setErrors(found)
+      setError('Please fix the highlighted fields.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -62,13 +86,13 @@ export default function ProfileGroupScreen() {
       <PageHeader title={group.title} subtitle={group.description} action={!editing ? <TextButton label="Edit" onPress={startEditing} /> : undefined} />
       <GroupedCard>
         {group.fields.map((field) => (
-          <FieldRow key={field.key} field={field} editing={editing} value={(editing ? draft : profile)[field.key] ?? ''} onChange={(value) => updateField(field.key, value)} />
+          <FieldRow key={field.key} field={field} editing={editing} value={(editing ? draft : profile)[field.key] ?? ''} error={errors[field.key]} options={field.key === 'barangay' ? BARANGAYS[draft.municipality as Municipality] : undefined} onChange={(value) => updateField(field.key, value)} />
         ))}
       </GroupedCard>
       {error ? <Banner text={error} tone="error" /> : null}
       {editing && (
         <View style={styles.actions}>
-          <Button label="Cancel" variant="secondary" onPress={() => setEditing(false)} />
+          <Button label="Cancel" variant="secondary" onPress={() => { setErrors({}); setError(''); setEditing(false) }} />
           <Button label="Done" onPress={save} loading={saving} />
         </View>
       )}
@@ -77,7 +101,7 @@ export default function ProfileGroupScreen() {
   )
 }
 
-function FieldRow({ field, editing, value, onChange }: { field: ProfileField; editing: boolean; value: string; onChange: (value: string) => void }) {
+function FieldRow({ field, editing, value, error, options, onChange }: { field: ProfileField; editing: boolean; value: string; error?: string; options?: readonly string[]; onChange: (value: string) => void }) {
   if (!editing) {
     return (
       <View style={styles.row}>
@@ -86,7 +110,7 @@ function FieldRow({ field, editing, value, onChange }: { field: ProfileField; ed
       </View>
     )
   }
-  return <ProfileFieldInput field={field} value={value} onChange={onChange} />
+  return <ProfileFieldInput field={field} value={value} error={error} options={options} onChange={onChange} />
 }
 
 const styles = StyleSheet.create({
