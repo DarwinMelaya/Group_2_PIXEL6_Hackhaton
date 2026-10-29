@@ -1,3 +1,4 @@
+import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
@@ -74,7 +75,7 @@ export default function SettingsScreen() {
     setFeedback(null)
     const confirmed = await confirmAction({
       title: 'Clear app data?',
-      message: 'This deletes your profile, chat history, saved photos, and preferences from this device. Safety guides and exported backup files are not affected.',
+      message: 'This deletes your profile, chat history, saved photos, preferences, and Gemini API key from this device. Safety guides, the downloaded AI model, and exported backup files are not affected.',
       confirmLabel: 'Clear data',
       destructive: true,
     })
@@ -146,6 +147,13 @@ export default function SettingsScreen() {
             <AppText tone="soft" style={styles.preview}>Clear guidance, whenever you need it.</AppText>
           </View>
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <SettingsLabel>AI Chatbot</SettingsLabel>
+        <GroupedCard>
+          <ListRow title="Chatbot settings" subtitle="Local or cloud AI" leading="chat" onPress={() => router.push('/chat-settings')} />
+        </GroupedCard>
       </View>
 
       <View style={styles.section}>

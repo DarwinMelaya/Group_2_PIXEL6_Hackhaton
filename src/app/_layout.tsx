@@ -10,6 +10,7 @@ import { SettingsProvider, useSettings } from '@/providers/SettingsProvider'
 import { palette } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
@@ -39,6 +40,7 @@ function AppNavigator() {
           />
           <Stack.Screen name="emergency" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="chat-settings" />
           <Stack.Screen name="profile/[group]" />
         </Stack.Protected>
         <Stack.Protected guard={!settings.onboarded}>

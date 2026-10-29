@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -10,6 +10,7 @@ import { Touchable } from '@/components/ui/Touchable'
 import { getGuide } from '@/data/guides'
 import { radius, space, touchTarget } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
+import { goBack } from '@/utils/navigation'
 
 export default function GuideSheet() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -22,7 +23,7 @@ export default function GuideSheet() {
     return (
       <View style={[styles.missing, { backgroundColor: colors.surface }]}>
         <AppText variant="sheetTitle">Guide not found</AppText>
-        <Touchable onPress={() => router.back()} style={styles.missingAction}><AppText tone="teal">Close</AppText></Touchable>
+        <Touchable onPress={() => goBack('/guides')} style={styles.missingAction}><AppText tone="teal">Close</AppText></Touchable>
       </View>
     )
   }
@@ -36,7 +37,7 @@ export default function GuideSheet() {
           <AppText variant="eyebrow" tone="soft">{guide.kind === 'disaster' ? 'Safety guide' : 'First aid guide'}</AppText>
           <AppText variant="sheetTitle" accessibilityRole="header">{guide.name}</AppText>
         </View>
-        <Touchable onPress={() => router.back()} accessibilityLabel="Close" style={[styles.close, { borderColor: colors.line, backgroundColor: colors.background }]}>
+        <Touchable onPress={() => goBack('/guides')} accessibilityLabel="Close" style={[styles.close, { borderColor: colors.line, backgroundColor: colors.background }]}>
           <Icon name="close" size={18} color={colors.ink} />
         </Touchable>
       </View>

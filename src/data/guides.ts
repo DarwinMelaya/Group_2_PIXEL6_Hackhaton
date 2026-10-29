@@ -25,7 +25,7 @@ export const guides: Guide[] = [
     detail: 'Strong winds and heavy rain',
     icon: 'storm',
     tone: 'sky',
-    keywords: ['typhoon', 'bagyo', 'storm', 'wind', 'hangin', 'signal'],
+    keywords: ['typhoon', 'bagyo', 'storm', 'wind', 'hangin', 'signal', 'bumabagyo'],
     phases: [
       { label: 'Before', steps: ['Monitor PAGASA bulletins and local advisories.', 'Secure loose objects, reinforce windows, and trim weak branches.', 'Prepare a go-bag with water, food, medicine, a flashlight, and documents.'] },
       { label: 'During', steps: ['Stay indoors, away from windows and glass doors.', 'Evacuate immediately if authorities order it or your home is unsafe.', 'Unplug appliances and stay off wired phones during lightning.'] },
@@ -39,7 +39,7 @@ export const guides: Guide[] = [
     detail: 'Rising water and flash floods',
     icon: 'flood',
     tone: 'blue',
-    keywords: ['flood', 'baha', 'water', 'tubig', 'flash flood'],
+    keywords: ['flood', 'baha', 'water', 'tubig', 'flash flood', 'binaha', 'bumabaha', 'lubog'],
     phases: [
       { label: 'Before', steps: ['Know your evacuation route and the nearest evacuation center.', 'Move valuables, documents, and electrical items to higher places.', 'Prepare a go-bag and keep your phone charged.'] },
       { label: 'During', steps: ['Move to higher ground as soon as water starts rising.', 'Do not walk or drive through floodwater; fast-moving water can knock you down.', 'Turn off electricity at the main switch only if it is safe to do so.'] },
@@ -53,7 +53,7 @@ export const guides: Guide[] = [
     detail: 'Sliding soil and debris',
     icon: 'landslide',
     tone: 'amber',
-    keywords: ['landslide', 'guho', 'pagguho', 'mudslide', 'slope'],
+    keywords: ['landslide', 'guho', 'pagguho', 'mudslide', 'slope', 'gumuho'],
     phases: [
       { label: 'Before', steps: ['Find out whether your area is landslide-prone from local hazard maps.', 'Watch for ground cracks, tilting trees, or sudden changes in creek water.', 'Plan an evacuation route away from slopes.'] },
       { label: 'During', steps: ['Evacuate immediately when you hear rumbling or see moving debris.', 'Move away from the path of the slide toward stable ground.', 'If escape is impossible, curl into a tight ball and protect your head.'] },
@@ -67,7 +67,7 @@ export const guides: Guide[] = [
     detail: 'Ground shaking and aftershocks',
     icon: 'quake',
     tone: 'violet',
-    keywords: ['earthquake', 'lindol', 'quake', 'aftershock', 'tsunami'],
+    keywords: ['earthquake', 'lindol', 'quake', 'aftershock', 'tsunami', 'lumindol', 'yanig', 'yumanig'],
     phases: [
       { label: 'Before', steps: ['Secure heavy furniture and appliances to walls.', 'Identify safe spots under sturdy tables, away from windows.', 'Join earthquake drills and agree on a family meeting place.'] },
       { label: 'During', steps: ['Drop, Cover, and Hold On until the shaking stops.', 'Stay away from windows, shelves, and hanging objects.', 'If outdoors, move to an open area away from buildings, trees, and power lines.'] },
@@ -81,7 +81,7 @@ export const guides: Guide[] = [
     detail: 'House and grass fires',
     icon: 'fire',
     tone: 'coral',
-    keywords: ['fire', 'sunog', 'smoke', 'usok'],
+    keywords: ['fire', 'sunog', 'smoke', 'usok', 'apoy'],
     phases: [
       { label: 'Before', steps: ['Install smoke alarms and keep a fire extinguisher within reach.', 'Never leave cooking unattended; keep flammables away from heat.', 'Plan and practice two ways out of every room.'] },
       { label: 'During', steps: ['Alert everyone and get out fast; call 911 once you are outside.', 'Stay low under smoke and cover your nose and mouth.', 'Feel doors before opening them; if hot, use another exit.'] },
@@ -123,7 +123,7 @@ export const guides: Guide[] = [
     detail: 'Clear the airway',
     icon: 'choking',
     tone: 'teal',
-    keywords: ['choking', 'nabulunan', 'airway', 'heimlich'],
+    keywords: ['choking', 'nabulunan', 'airway', 'heimlich', 'nabilaukan', 'nasamid', 'hindi makahinga'],
     phases: [
       { label: 'Immediate care', steps: ['Ask "Are you choking?" and encourage them to cough if they can.', 'Give up to 5 firm back blows between the shoulder blades.', 'Then give up to 5 abdominal thrusts; alternate until the object comes out.'] },
       { label: 'Warning signs', steps: ['Unable to speak, cough, or breathe.', 'Lips or face turning blue.', 'Loss of consciousness: call 911 and start CPR if trained.'] },
@@ -137,7 +137,7 @@ export const guides: Guide[] = [
     detail: 'Stabilize safely',
     icon: 'fracture',
     tone: 'indigo',
-    keywords: ['fracture', 'broken bone', 'bali', 'nabalian', 'sprain'],
+    keywords: ['fracture', 'broken bone', 'bali', 'nabalian', 'sprain', 'nabali', 'pilay', 'napilayan'],
     phases: [
       { label: 'Immediate care', steps: ['Keep the injured part still, in the position you found it.', 'Support it with padding or a splint above and below the injury.', 'Apply a cold pack wrapped in cloth to reduce swelling.'] },
       { label: 'Warning signs', steps: ['Bone visible through the skin, or severe deformity.', 'Numbness, tingling, or a cold, pale limb below the injury.', 'Suspected head, neck, or back injury: do not move the person.'] },

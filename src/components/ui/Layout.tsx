@@ -1,9 +1,9 @@
-import { router } from 'expo-router'
 import type { ReactNode } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { radius, space, touchTarget } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
+import { goBack } from '@/utils/navigation'
 
 import { AppText } from './AppText'
 import { Icon, type IconName } from './Icon'
@@ -41,7 +41,7 @@ export function TextButton({ label, onPress }: { label: string; onPress: () => v
   )
 }
 
-export function BackButton({ label = 'Back', onPress = () => router.back() }: { label?: string; onPress?: () => void }) {
+export function BackButton({ label = 'Back', onPress = () => goBack() }: { label?: string; onPress?: () => void }) {
   const { colors } = useTheme()
   return (
     <Touchable onPress={onPress} style={styles.back} accessibilityLabel={`Go back to ${label}`} hitSlop={8}>

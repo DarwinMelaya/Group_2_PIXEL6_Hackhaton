@@ -42,7 +42,9 @@
           "cameraPermission": "GabAI needs camera access so you can capture images of hazards or injuries.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-secure-store",
+      "llama.rn"
     ],
     "experiments": {
       "typedRoutes": true

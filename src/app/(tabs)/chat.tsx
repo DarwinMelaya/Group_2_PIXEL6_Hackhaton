@@ -1,3 +1,4 @@
+import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useEffect, useRef, useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
@@ -6,24 +7,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { APP_HEADER_HEIGHT } from '@/components/AppHeader'
 import { AppText } from '@/components/ui/AppText'
 import { Icon } from '@/components/ui/Icon'
-import { Pill } from '@/components/ui/Layout'
+import { Pill, TextButton } from '@/components/ui/Layout'
 import { Touchable } from '@/components/ui/Touchable'
 import { addMessage, listMessages, type ChatMessage } from '@/db/chat'
+import { useSettings } from '@/providers/SettingsProvider'
 import { generateReply } from '@/services/assistant'
 import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
-const GREETING: ChatMessage = { id: 0, role: 'assistant', body: 'Kumusta! I’m GabAI. Ask me about first aid or disaster preparedness.', createdAt: 0 }
+const GREETING: ChatMessage = { id: 0, role: 'assistant', body: 'Kumusta! I’m GabAI. Ask me about first aid or disaster preparedness in English, Tagalog, or Taglish.', createdAt: 0 }
 const SUGGESTIONS = ['Ano ang gagawin kapag may lindol?', 'How do I treat a minor burn?', 'What belongs in an emergency kit?']
 
 export default function ChatScreen() {
   const db = useSQLiteContext()
+  const { settings } = useSettings()
   const { colors, scale } = useTheme()
   const insets = useSafeAreaInsets()
   const list = useRef<FlatList<ChatMessage>>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [thinking, setThinking] = useState(false)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     listMessages(db).then(setMessages).catch(() => setMessages([]))
@@ -33,11 +37,14 @@ export default function ChatScreen() {
     const text = draft.trim()
     if (!text || thinking) return
     setDraft('')
+    setNotice('')
     setThinking(true)
     try {
       const question = await addMessage(db, 'user', text)
       setMessages((current) => [...current, question])
-      const answer = await addMessage(db, 'assistant', await generateReply(text))
+      const reply = await generateReply(text, messages, settings)
+      setNotice(reply.notice ?? '')
+      const answer = await addMessage(db, 'assistant', reply.text)
       setMessages((current) => [...current, answer])
     } finally {
       setThinking(false)
@@ -61,7 +68,8 @@ export default function ChatScreen() {
             <View style={styles.orb}><Icon name="shield" size={31} color={brand.onPrimary} /></View>
             <AppText variant="pageTitle" align="center" style={styles.introTitle}>GabAI Assistant</AppText>
             <AppText variant="caption" tone="soft" align="center">Answers grounded in verified safety guides</AppText>
-            <View style={styles.pill}><Pill label="AI running offline" /></View>
+            <View style={styles.pill}><Pill label={settings.aiMode === 'cloud' ? 'Cloud AI · Gemini' : 'AI running offline'} /></View>
+            <TextButton label="Chat settings" onPress={() => router.push('/chat-settings')} />
           </View>
         }
         renderItem={({ item }) => {
@@ -88,6 +96,7 @@ export default function ChatScreen() {
           ) : undefined
         }
       />
+      {notice ? <AppText variant="small" tone="soft" align="center" style={styles.notice}>{notice}</AppText> : null}
       <View style={[styles.composer, { backgroundColor: colors.surface, borderColor: colors.line }]}>
         <TextInput
           value={draft}
@@ -122,6 +131,7 @@ const styles = StyleSheet.create({
   suggestions: { marginTop: space[2] },
   suggestionsLabel: { marginBottom: space[2] },
   prompt: { flexDirection: 'row', alignItems: 'center', gap: space[2], borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], minHeight: touchTarget, marginBottom: space[2] },
+  notice: { marginHorizontal: space[5], marginBottom: space[2] },
   composer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: space[4], marginBottom: space[3], paddingLeft: space[3], paddingRight: 6, minHeight: 56, borderWidth: 1, borderRadius: 15 },
   input: { flex: 1, minWidth: 0, paddingVertical: space[2] },
   send: { width: touchTarget, height: touchTarget, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.primary },
