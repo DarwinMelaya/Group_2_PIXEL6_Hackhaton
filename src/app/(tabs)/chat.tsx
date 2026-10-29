@@ -4,10 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { APP_HEADER_HEIGHT } from '@/components/AppHeader'
 import { AppText } from '@/components/ui/AppText'
 import { Icon } from '@/components/ui/Icon'
-import { Pill, TextButton } from '@/components/ui/Layout'
 import { Touchable } from '@/components/ui/Touchable'
 import { addMessage, listMessages, type ChatMessage } from '@/db/chat'
 import { useSettings } from '@/providers/SettingsProvider'
@@ -54,7 +52,12 @@ export default function ChatScreen() {
   const data = [GREETING, ...messages]
 
   return (
-    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={APP_HEADER_HEIGHT + insets.top}>
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={insets.top + touchTarget}>
+      <View style={[styles.topBar, { paddingTop: insets.top }]}>
+        <Touchable onPress={() => router.push('/chat-settings')} accessibilityLabel="Chat settings" style={styles.gear}>
+          <Icon name="settings" size={20} color={colors.ink} />
+        </Touchable>
+      </View>
       <FlatList
         ref={list}
         data={data}
@@ -68,8 +71,6 @@ export default function ChatScreen() {
             <View style={styles.orb}><Icon name="shield" size={31} color={brand.onPrimary} /></View>
             <AppText variant="pageTitle" align="center" style={styles.introTitle}>GabAI Assistant</AppText>
             <AppText variant="caption" tone="soft" align="center">Answers grounded in verified safety guides</AppText>
-            <View style={styles.pill}><Pill label={settings.aiMode === 'cloud' ? 'Cloud AI · Gemini' : 'AI running offline'} /></View>
-            <TextButton label="Chat settings" onPress={() => router.push('/chat-settings')} />
           </View>
         }
         renderItem={({ item }) => {
@@ -120,11 +121,12 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  list: { paddingHorizontal: space[5], paddingTop: space[6], paddingBottom: space[4], gap: space[3] },
+  topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: space[4] },
+  gear: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: space[5], paddingTop: space[2], paddingBottom: space[4], gap: space[3] },
   intro: { alignItems: 'center', marginBottom: space[4] },
   orb: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.primary, marginBottom: space[3] },
   introTitle: { marginBottom: space[1] },
-  pill: { marginTop: space[3] },
   bubble: { maxWidth: '84%', paddingHorizontal: 14, paddingVertical: space[3], borderRadius: radius.group },
   mine: { alignSelf: 'flex-end', borderBottomRightRadius: 5 },
   theirs: { alignSelf: 'flex-start', borderBottomLeftRadius: 5 },

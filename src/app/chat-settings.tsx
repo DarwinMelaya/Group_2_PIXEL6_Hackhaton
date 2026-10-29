@@ -2,10 +2,11 @@ import * as Linking from 'expo-linking'
 import { useEffect, useState } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
+import { SelectField } from '@/components/SelectField'
 import { AppText } from '@/components/ui/AppText'
 import { Button } from '@/components/ui/Button'
 import { GroupedCard } from '@/components/ui/GroupedCard'
-import { Icon, type IconName } from '@/components/ui/Icon'
+import { Icon } from '@/components/ui/Icon'
 import { BackButton, Banner, PageHeader, SettingsLabel } from '@/components/ui/Layout'
 import { ListRow } from '@/components/ui/ListRow'
 import { Screen } from '@/components/ui/Screen'
@@ -13,6 +14,7 @@ import { Touchable } from '@/components/ui/Touchable'
 import { GEMINI_MODELS } from '@/data/ai'
 import type { AiMode, ReplyLength } from '@/db/settings'
 import { useSettings } from '@/providers/SettingsProvider'
+import { getDeviceSpecs, localAiCapability, OFFLINE_AI_MIN_FREE_GB, OFFLINE_AI_RECOMMENDED_RAM_GB } from '@/services/deviceSpecs'
 import { GeminiError, testGeminiKey } from '@/services/gemini'
 import { LOCAL_MODEL, useLocalModel } from '@/services/localModel'
 import { deleteGeminiKey, getGeminiKey, setGeminiKey } from '@/storage/secrets'
@@ -22,9 +24,9 @@ import { confirmAction } from '@/utils/dialogs'
 
 type Feedback = { text: string; error?: boolean } | null
 
-const AI_MODES: { value: AiMode; label: string; detail: string; icon: IconName }[] = [
-  { value: 'local', label: 'Local AI', detail: 'Gemma 4 E2B on your phone. Works offline.', icon: 'shield' },
-  { value: 'cloud', label: 'Cloud AI', detail: 'Google Gemini. Needs internet.', icon: 'chat' },
+const AI_MODES: { value: AiMode; label: string; detail: string }[] = [
+  { value: 'local', label: 'Local AI', detail: 'Gemma 4 E2B on your phone. Works offline.' },
+  { value: 'cloud', label: 'Cloud AI', detail: 'Google Gemini. Needs internet.' },
 ]
 
 const REPLY_LENGTHS: { value: ReplyLength; label: string }[] = [
@@ -49,6 +51,10 @@ export default function ChatSettingsScreen() {
   const [apiKey, setApiKey] = useState('')
   const [savedKey, setSavedKey] = useState('')
   const [busy, setBusy] = useState(false)
+  const [specs] = useState(getDeviceSpecs)
+
+  const selectedMode = AI_MODES.find((option) => option.value === settings.aiMode) ?? AI_MODES[0]
+  const capability = localAiCapability(specs)
 
   useEffect(() => {
     getGeminiKey().then((key) => setSavedKey(key ?? '')).catch(() => setSavedKey(''))
@@ -147,134 +153,146 @@ export default function ChatSettingsScreen() {
 
       <View style={styles.section}>
         <SettingsLabel>AI mode</SettingsLabel>
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <View style={styles.modeRow} accessibilityRole="radiogroup" accessibilityLabel="AI mode">
-            {AI_MODES.map((option) => {
-              const selected = settings.aiMode === option.value
-              return (
-                <Touchable
-                  key={option.value}
-                  onPress={() => updateSettings({ aiMode: option.value })}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`${option.label} AI mode`}
-                  style={[styles.modeOption, { borderColor: selected ? colors.teal : colors.line, backgroundColor: selected ? colors.tealSoft : 'transparent' }]}
-                >
-                  <View style={styles.modeHeader}>
-                    <Icon name={option.icon} size={18} color={colors.ink} />
-                    <AppText weight="600">{option.label}</AppText>
-                    {selected && <Icon name="check" size={16} color={colors.teal} />}
-                  </View>
-                  <AppText variant="small" tone="soft" align="center">{option.detail}</AppText>
-                </Touchable>
-              )
-            })}
-          </View>
-        </View>
+        <SelectField
+          label="AI mode"
+          value={selectedMode.label}
+          placeholder="Choose AI mode"
+          options={AI_MODES.map((option) => option.label)}
+          onChange={(label) => {
+            const option = AI_MODES.find((item) => item.label === label)
+            if (option) updateSettings({ aiMode: option.value })
+          }}
+        />
+        <AppText variant="small" tone="soft" style={styles.footnote}>{selectedMode.detail}</AppText>
       </View>
 
-      <View style={styles.section}>
-        <SettingsLabel>{`Local AI · ${LOCAL_MODEL.name}`}</SettingsLabel>
-        <GroupedCard>
-          <ListRow title={modelStatusLabel()} subtitle={model.error} leading="download" />
-        </GroupedCard>
-        {model.status === 'downloading' && (
-          <View style={[styles.progressTrack, { backgroundColor: colors.line }]}>
-            <View style={[styles.progressFill, { backgroundColor: colors.teal, width: `${Math.round(model.progress * 100)}%` }]} />
-          </View>
-        )}
-        <View style={styles.actions}>
-          {model.status === 'downloading' ? (
-            <Button label="Cancel" variant="secondary" onPress={model.cancel} />
-          ) : model.status === 'ready' ? (
-            <Button label="Delete model" variant="destructive" loading={busy} onPress={deleteModel} />
-          ) : model.status === 'missing' ? (
-            <Button label={`Download (${MODEL_SIZE_GB})`} icon="download" onPress={downloadModel} />
-          ) : null}
-        </View>
-        <View style={[styles.card, styles.replyLength, { backgroundColor: colors.surface }]}>
-          <AppText align="center">Reply length</AppText>
-          <View style={[styles.segmented, { backgroundColor: colors.background }]} accessibilityRole="radiogroup" accessibilityLabel="Reply length">
-            {REPLY_LENGTHS.map((option) => {
-              const selected = settings.localReplyLength === option.value
-              return (
-                <Touchable
-                  key={option.value}
-                  onPress={() => updateSettings({ localReplyLength: option.value })}
-                  pressedScale={1}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  style={[styles.segment, selected && [styles.segmentSelected, { backgroundColor: colors.surface }]]}
-                >
-                  <AppText variant="small" tone={selected ? 'teal' : 'default'} weight={selected ? '600' : '400'}>{option.label}</AppText>
-                </Touchable>
-              )
-            })}
-          </View>
-        </View>
-        <AppText variant="small" tone="soft" style={styles.footnote}>Runs entirely on this device. Nothing you type leaves your phone. Without the model, GabAI answers from the built-in safety guides.</AppText>
-      </View>
-
-      <View style={styles.section}>
-        <SettingsLabel>Cloud AI · Google Gemini</SettingsLabel>
-        {savedKey ? (
+      {settings.aiMode === 'local' && (
+        <View style={styles.section}>
+          <SettingsLabel>{`Local AI · ${LOCAL_MODEL.name}`}</SettingsLabel>
           <GroupedCard>
-            <ListRow title="API key saved" subtitle={`•••• ${savedKey.slice(-4)}`} leading="check" />
-            <ListRow title="Remove API key" subtitle="Delete the saved Gemini key" leading="trash" destructive onPress={removeKey} />
+            <ListRow title={modelStatusLabel()} subtitle={model.error} leading="download" />
           </GroupedCard>
-        ) : (
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <TextInput
-              value={apiKey}
-              onChangeText={setApiKey}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="Paste your Gemini API key"
-              placeholderTextColor={colors.inkSoft}
-              accessibilityLabel="Gemini API key"
-              style={[styles.input, { color: colors.ink, borderColor: colors.line, fontSize: typeRamp.body.fontSize * scale }]}
-            />
-            <View style={styles.actions}>
-              <Button label="Save" loading={busy} onPress={saveKey} />
+          {model.status === 'downloading' && (
+            <View style={[styles.progressTrack, { backgroundColor: colors.line }]}>
+              <View style={[styles.progressFill, { backgroundColor: colors.teal, width: `${Math.round(model.progress * 100)}%` }]} />
+            </View>
+          )}
+          <View style={styles.actions}>
+            {model.status === 'downloading' ? (
+              <Button label="Cancel" variant="secondary" onPress={model.cancel} />
+            ) : model.status === 'ready' ? (
+              <Button label="Delete model" variant="destructive" loading={busy} onPress={deleteModel} />
+            ) : model.status === 'missing' ? (
+              <Button label={`Download (${MODEL_SIZE_GB})`} icon="download" onPress={downloadModel} />
+            ) : null}
+          </View>
+          <View style={styles.deviceCard}>
+            <GroupedCard>
+              <ListRow title={specs.device ?? 'This device'} subtitle={`${specs.os}${specs.cpu ? ` · ${specs.cpu}` : ''}`} leading="system" />
+              <ListRow
+                title="Memory"
+                subtitle={specs.memoryGb !== null ? `${specs.memoryGb} GB RAM · ${OFFLINE_AI_RECOMMENDED_RAM_GB} GB+ recommended` : 'Unavailable'}
+                leading="shield"
+              />
+              <ListRow
+                title="Storage"
+                subtitle={specs.freeGb !== null ? `${specs.freeGb} GB free · ${OFFLINE_AI_MIN_FREE_GB} GB needed` : 'Unavailable'}
+                leading="download"
+              />
+              <ListRow
+                title={capability.title}
+                subtitle={capability.message}
+                leading={capability.level === 'ready' ? 'check' : 'shield'}
+                destructive={capability.level === 'insufficient'}
+              />
+            </GroupedCard>
+          </View>
+          <View style={[styles.card, styles.replyLength, { backgroundColor: colors.surface }]}>
+            <AppText align="center">Reply length</AppText>
+            <View style={[styles.segmented, { backgroundColor: colors.background }]} accessibilityRole="radiogroup" accessibilityLabel="Reply length">
+              {REPLY_LENGTHS.map((option) => {
+                const selected = settings.localReplyLength === option.value
+                return (
+                  <Touchable
+                    key={option.value}
+                    onPress={() => updateSettings({ localReplyLength: option.value })}
+                    pressedScale={1}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={[styles.segment, selected && [styles.segmentSelected, { backgroundColor: colors.surface }]]}
+                  >
+                    <AppText variant="small" tone={selected ? 'teal' : 'default'} weight={selected ? '600' : '400'}>{option.label}</AppText>
+                  </Touchable>
+                )
+              })}
             </View>
           </View>
-        )}
-        <View style={[styles.card, styles.models, { backgroundColor: colors.surface }]} accessibilityRole="radiogroup" accessibilityLabel="Gemini model">
-          {GEMINI_MODELS.map((option) => {
-            const selected = settings.geminiModel === option.id
-            return (
-              <Touchable
-                key={option.id}
-                onPress={() => updateSettings({ geminiModel: option.id })}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                style={styles.modelRow}
-              >
-                <View style={styles.checkSlot} />
-                <View style={styles.modelBody}>
-                  <AppText weight="500" align="center">{option.label}</AppText>
-                  <AppText variant="small" tone="soft" align="center">{option.detail}</AppText>
-                </View>
-                <View style={styles.checkSlot}>{selected && <Icon name="check" size={18} color={colors.teal} />}</View>
-              </Touchable>
-            )
-          })}
+          <AppText variant="small" tone="soft" style={styles.footnote}>Runs entirely on this device. Nothing you type leaves your phone. Without the model, GabAI answers from the built-in safety guides.</AppText>
         </View>
-        <View style={styles.actions}>
-          <Button label="Test connection" variant="secondary" disabled={!savedKey} loading={busy} onPress={testConnection} />
-        </View>
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <AppText weight="600" style={styles.guideTitle}>Get a free Gemini API key</AppText>
-          {SETUP_STEPS.map((step) => (
-            <AppText key={step} variant="caption" tone="soft" style={styles.guideStep}>{step}</AppText>
-          ))}
-          <View style={styles.actions}>
-            <Button label="Get free API key" variant="secondary" onPress={() => Linking.openURL('https://aistudio.google.com/apikey')} />
+      )}
+
+      {settings.aiMode === 'cloud' && (
+        <View style={styles.section}>
+          <SettingsLabel>Cloud AI · Google Gemini</SettingsLabel>
+          {savedKey ? (
+            <GroupedCard>
+              <ListRow title="API key saved" subtitle={`•••• ${savedKey.slice(-4)}`} leading="check" />
+              <ListRow title="Remove API key" subtitle="Delete the saved Gemini key" leading="trash" destructive onPress={removeKey} />
+            </GroupedCard>
+          ) : (
+            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+              <TextInput
+                value={apiKey}
+                onChangeText={setApiKey}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Paste your Gemini API key"
+                placeholderTextColor={colors.inkSoft}
+                accessibilityLabel="Gemini API key"
+                style={[styles.input, { color: colors.ink, borderColor: colors.line, fontSize: typeRamp.body.fontSize * scale }]}
+              />
+              <View style={styles.actions}>
+                <Button label="Save" loading={busy} onPress={saveKey} />
+              </View>
+            </View>
+          )}
+          <View style={[styles.card, styles.models, { backgroundColor: colors.surface }]} accessibilityRole="radiogroup" accessibilityLabel="Gemini model">
+            {GEMINI_MODELS.map((option) => {
+              const selected = settings.geminiModel === option.id
+              return (
+                <Touchable
+                  key={option.id}
+                  onPress={() => updateSettings({ geminiModel: option.id })}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={styles.modelRow}
+                >
+                  <View style={styles.checkSlot} />
+                  <View style={styles.modelBody}>
+                    <AppText weight="500" align="center">{option.label}</AppText>
+                    <AppText variant="small" tone="soft" align="center">{option.detail}</AppText>
+                  </View>
+                  <View style={styles.checkSlot}>{selected && <Icon name="check" size={18} color={colors.teal} />}</View>
+                </Touchable>
+              )
+            })}
           </View>
+          <View style={styles.actions}>
+            <Button label="Test connection" variant="secondary" disabled={!savedKey} loading={busy} onPress={testConnection} />
+          </View>
+          <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            <AppText weight="600" style={styles.guideTitle}>Get a free Gemini API key</AppText>
+            {SETUP_STEPS.map((step) => (
+              <AppText key={step} variant="caption" tone="soft" style={styles.guideStep}>{step}</AppText>
+            ))}
+            <View style={styles.actions}>
+              <Button label="Get free API key" variant="secondary" onPress={() => Linking.openURL('https://aistudio.google.com/apikey')} />
+            </View>
+          </View>
+          <AppText variant="small" tone="soft" style={styles.footnote}>The free tier has daily limits. When Cloud AI is on, your messages are sent to Google to generate replies. Avoid sharing personal health details. If the cloud is unavailable, GabAI answers offline.</AppText>
         </View>
-        <AppText variant="small" tone="soft" style={styles.footnote}>The free tier has daily limits. When Cloud AI is on, your messages are sent to Google to generate replies. Avoid sharing personal health details. If the cloud is unavailable, GabAI answers offline.</AppText>
-      </View>
+      )}
 
       <View style={styles.section}>
         <SettingsLabel>Language</SettingsLabel>
@@ -291,12 +309,10 @@ export default function ChatSettingsScreen() {
 const styles = StyleSheet.create({
   section: { marginTop: space[6] },
   card: { borderRadius: radius.group, padding: space[4] },
-  modeRow: { flexDirection: 'row', gap: space[2] },
-  modeOption: { flex: 1, alignItems: 'center', gap: space[2], padding: space[3], borderWidth: 1, borderRadius: radius.group },
-  modeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2] },
   progressTrack: { height: 6, borderRadius: 3, marginTop: space[3], marginHorizontal: space[1], overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },
   actions: { flexDirection: 'row', marginTop: space[3] },
+  deviceCard: { marginTop: space[3] },
   replyLength: { marginTop: space[3], gap: space[3] },
   segmented: { flexDirection: 'row', gap: space[1], padding: space[1], borderRadius: radius.md },
   segment: { flex: 1, minHeight: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
