@@ -1,0 +1,128 @@
+import { useSQLiteContext } from 'expo-sqlite'
+import { useEffect, useRef, useState } from 'react'
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { APP_HEADER_HEIGHT } from '@/components/AppHeader'
+import { AppText } from '@/components/ui/AppText'
+import { Icon } from '@/components/ui/Icon'
+import { Pill } from '@/components/ui/Layout'
+import { Touchable } from '@/components/ui/Touchable'
+import { addMessage, listMessages, type ChatMessage } from '@/db/chat'
+import { generateReply } from '@/services/assistant'
+import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
+import { useTheme } from '@/theme/useTheme'
+
+const GREETING: ChatMessage = { id: 0, role: 'assistant', body: 'Kumusta! I’m GabAI. Ask me about first aid or disaster preparedness.', createdAt: 0 }
+const SUGGESTIONS = ['Ano ang gagawin kapag may lindol?', 'How do I treat a minor burn?', 'What belongs in an emergency kit?']
+
+export default function ChatScreen() {
+  const db = useSQLiteContext()
+  const { colors, scale } = useTheme()
+  const insets = useSafeAreaInsets()
+  const list = useRef<FlatList<ChatMessage>>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [draft, setDraft] = useState('')
+  const [thinking, setThinking] = useState(false)
+
+  useEffect(() => {
+    listMessages(db).then(setMessages).catch(() => setMessages([]))
+  }, [db])
+
+  const send = async () => {
+    const text = draft.trim()
+    if (!text || thinking) return
+    setDraft('')
+    setThinking(true)
+    try {
+      const question = await addMessage(db, 'user', text)
+      setMessages((current) => [...current, question])
+      const answer = await addMessage(db, 'assistant', await generateReply(text))
+      setMessages((current) => [...current, answer])
+    } finally {
+      setThinking(false)
+    }
+  }
+
+  const data = [GREETING, ...messages]
+
+  return (
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={APP_HEADER_HEIGHT + insets.top}>
+      <FlatList
+        ref={list}
+        data={data}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
+        ListHeaderComponent={
+          <View style={styles.intro}>
+            <View style={styles.orb}><Icon name="shield" size={31} color={brand.onPrimary} /></View>
+            <AppText variant="pageTitle" align="center" style={styles.introTitle}>GabAI Assistant</AppText>
+            <AppText variant="caption" tone="soft" align="center">Answers grounded in verified safety guides</AppText>
+            <View style={styles.pill}><Pill label="AI running offline" /></View>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const mine = item.role === 'user'
+          return (
+            <View style={[styles.bubble, mine ? [styles.mine, { backgroundColor: brand.primary }] : [styles.theirs, { backgroundColor: colors.surface }]]}>
+              <AppText style={mine ? { color: brand.onPrimary } : undefined}>{item.body}</AppText>
+            </View>
+          )
+        }}
+        ListFooterComponent={
+          thinking ? (
+            <View style={[styles.bubble, styles.theirs, { backgroundColor: colors.surface }]}><AppText tone="soft">GabAI is thinking…</AppText></View>
+          ) : messages.length === 0 ? (
+            <View style={styles.suggestions}>
+              <AppText variant="eyebrow" tone="soft" style={styles.suggestionsLabel}>Try asking</AppText>
+              {SUGGESTIONS.map((prompt) => (
+                <Touchable key={prompt} onPress={() => setDraft(prompt)} style={[styles.prompt, { borderColor: colors.line, backgroundColor: colors.surface }]}>
+                  <AppText variant="caption" style={styles.fill}>{prompt}</AppText>
+                  <Icon name="chevron" size={16} color={colors.inkSoft} />
+                </Touchable>
+              ))}
+            </View>
+          ) : undefined
+        }
+      />
+      <View style={[styles.composer, { backgroundColor: colors.surface, borderColor: colors.line }]}>
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          placeholder="Ask GabAI…"
+          placeholderTextColor={colors.inkSoft}
+          accessibilityLabel="Message GabAI"
+          returnKeyType="send"
+          onSubmitEditing={send}
+          submitBehavior="submit"
+          maxLength={500}
+          style={[styles.input, { color: colors.ink, fontSize: typeRamp.body.fontSize * scale }]}
+        />
+        <Touchable onPress={send} disabled={!draft.trim() || thinking} accessibilityLabel="Send message" style={[styles.send, { opacity: draft.trim() && !thinking ? 1 : 0.5 }]}>
+          <Icon name="send" size={19} color={brand.onPrimary} />
+        </Touchable>
+      </View>
+    </KeyboardAvoidingView>
+  )
+}
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  list: { paddingHorizontal: space[5], paddingTop: space[6], paddingBottom: space[4], gap: space[3] },
+  intro: { alignItems: 'center', marginBottom: space[4] },
+  orb: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.primary, marginBottom: space[3] },
+  introTitle: { marginBottom: space[1] },
+  pill: { marginTop: space[3] },
+  bubble: { maxWidth: '84%', paddingHorizontal: 14, paddingVertical: space[3], borderRadius: radius.group },
+  mine: { alignSelf: 'flex-end', borderBottomRightRadius: 5 },
+  theirs: { alignSelf: 'flex-start', borderBottomLeftRadius: 5 },
+  suggestions: { marginTop: space[2] },
+  suggestionsLabel: { marginBottom: space[2] },
+  prompt: { flexDirection: 'row', alignItems: 'center', gap: space[2], borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], minHeight: touchTarget, marginBottom: space[2] },
+  composer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: space[4], marginBottom: space[3], paddingLeft: space[3], paddingRight: 6, minHeight: 56, borderWidth: 1, borderRadius: 15 },
+  input: { flex: 1, minWidth: 0, paddingVertical: space[2] },
+  send: { width: touchTarget, height: touchTarget, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.primary },
+})
