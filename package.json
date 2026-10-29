@@ -39,5 +39,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
+  }
 }

@@ -1,0 +1,400 @@
+import { useEffect, useState } from 'react'
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { AppText } from '@/components/ui/AppText'
+import { Icon, type IconName } from '@/components/ui/Icon'
+import { Touchable } from '@/components/ui/Touchable'
+import { radius, space, touchTarget } from '@/theme/tokens'
+import { useTheme } from '@/theme/useTheme'
+
+type WeatherReport = {
+  temperature: number
+  feelsLike: number
+  code: number
+  time: string
+  isDay: boolean
+}
+
+type WeatherForecastDay = {
+  date: string
+  dateLabel: string
+  low: number
+  high: number
+  precipitationChance: number | null
+  humidity: number | null
+  wind: number | null
+  visibility: number | null
+  code: number
+}
+
+function parseWeatherPayload(payload: unknown): WeatherReport {
+  const current = (payload as { current?: Record<string, unknown> } | null)?.current
+  const number = (field: string) => {
+    const value = current?.[field]
+    if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error('Weather report unavailable')
+    return value
+  }
+  const time = current?.time
+  if (typeof time !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(time)) {
+    throw new Error('Weather report unavailable')
+  }
+  return {
+    temperature: number('temperature_2m'),
+    feelsLike: number('apparent_temperature'),
+    code: number('weather_code'),
+    time,
+    isDay: number('is_day') === 1,
+  }
+}
+
+function average(values: number[]): number | null {
+  if (!values.length) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function seriesValue(series: unknown[], index: number): number | null {
+  const value = series[index]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function parseForecastPayload(payload: unknown): WeatherForecastDay[] {
+  const data = payload as { daily?: Record<string, unknown>; hourly?: Record<string, unknown> } | null
+  const daily = data?.daily
+  const times = daily?.time
+  if (!Array.isArray(times)) throw new Error('Weather forecast unavailable')
+  const dailyValues = (field: string): unknown[] => Array.isArray(daily?.[field]) ? daily[field] as unknown[] : []
+  const hourlyValues = (field: string): unknown[] => Array.isArray(data?.hourly?.[field]) ? data.hourly[field] as unknown[] : []
+  const hourlyTimes = hourlyValues('time')
+  const hourlyHumidity = hourlyValues('relative_humidity_2m')
+  const hourlyVisibility = hourlyValues('visibility')
+  const humidityByDate = new Map<string, number[]>()
+  const visibilityByDate = new Map<string, number[]>()
+
+  hourlyTimes.forEach((time, index) => {
+    if (typeof time !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(time)) return
+    const date = time.slice(0, 10)
+    const humidity = seriesValue(hourlyHumidity, index)
+    const visibility = seriesValue(hourlyVisibility, index)
+    if (humidity !== null) humidityByDate.set(date, [...(humidityByDate.get(date) ?? []), humidity])
+    if (visibility !== null) visibilityByDate.set(date, [...(visibilityByDate.get(date) ?? []), visibility / 1000])
+  })
+
+  const highs = dailyValues('temperature_2m_max')
+  const lows = dailyValues('temperature_2m_min')
+  const codes = dailyValues('weather_code')
+  const precipitation = dailyValues('precipitation_probability_max')
+  const winds = dailyValues('wind_speed_10m_max')
+  const today = manilaDate(0)
+  return times.flatMap((time, index) => {
+    if (typeof time !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(time)) return []
+    const high = seriesValue(highs, index)
+    const low = seriesValue(lows, index)
+    const code = seriesValue(codes, index)
+    if (high === null || low === null || code === null) return []
+    const dateLabel = time === today ? 'Today' : new Date(`${time}T12:00:00+08:00`).toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })
+    return [{
+      date: time,
+      dateLabel,
+      low: Math.round(low),
+      high: Math.round(high),
+      precipitationChance: seriesValue(precipitation, index),
+      humidity: average(humidityByDate.get(time) ?? []),
+      wind: seriesValue(winds, index),
+      visibility: average(visibilityByDate.get(time) ?? []),
+      code,
+    }]
+  })
+}
+
+function conditionFor(code: number, isDay: boolean): { label: string; icon: IconName } {
+  if (code === 0) return { label: isDay ? 'Clear skies' : 'Clear night', icon: isDay ? 'sun' : 'moon' }
+  if ([1, 2].includes(code)) return { label: 'Partly cloudy', icon: 'cloud' }
+  if (code === 3) return { label: 'Overcast', icon: 'cloud' }
+  if ([45, 48].includes(code)) return { label: 'Foggy', icon: 'cloud' }
+  if ([51, 53, 55, 56, 57].includes(code)) return { label: 'Drizzle', icon: 'rain' }
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { label: 'Rain showers', icon: 'rain' }
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return { label: 'Snow', icon: 'cloud' }
+  if ([95, 96, 99].includes(code)) return { label: 'Thunderstorms', icon: 'storm' }
+  return { label: 'Current conditions', icon: 'cloud' }
+}
+
+function manilaDate(daysFromToday = 0): string {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000 + daysFromToday * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}
+
+function displayMetric(value: number | null, unit: string, digits = 0): string {
+  return value === null ? '—' : `${digits ? value.toFixed(digits) : Math.round(value)}${unit}`
+}
+
+export function WeatherCard() {
+  const { colors, scale } = useTheme()
+  const insets = useSafeAreaInsets()
+  const [report, setReport] = useState<WeatherReport | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
+  const [refresh, setRefresh] = useState(0)
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null)
+  const [now, setNow] = useState(0)
+  const [forecastOpen, setForecastOpen] = useState(false)
+  const [forecastRefresh, setForecastRefresh] = useState(0)
+  const [forecastLoading, setForecastLoading] = useState(false)
+  const [forecastFailed, setForecastFailed] = useState(false)
+  const [forecast, setForecast] = useState<WeatherForecastDay[]>([])
+
+  const refreshWeather = () => {
+    setLoading(true)
+    setRefresh((value) => value + 1)
+  }
+
+  const openForecast = () => {
+    setForecastLoading(true)
+    setForecastFailed(false)
+    setForecastRefresh((value) => value + 1)
+    setForecastOpen(true)
+  }
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let active = true
+    const timeout = setTimeout(() => controller.abort(), 10000)
+    const load = async () => {
+      try {
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=13.4463&longitude=121.8395&current=temperature_2m,apparent_temperature,is_day,weather_code&timezone=Asia%2FManila'
+        const response = await fetch(url, { signal: controller.signal })
+        if (!response.ok) throw new Error('Weather unavailable')
+        const next = parseWeatherPayload(await response.json() as unknown)
+        if (active) {
+          setReport(next)
+          setUpdatedAt(Date.now())
+          setNow(Date.now())
+          setFailed(false)
+        }
+      } catch {
+        if (active) setFailed(true)
+      } finally {
+        clearTimeout(timeout)
+        if (active) setLoading(false)
+      }
+    }
+    void load()
+    const nextUpdate = setInterval(() => {
+      setLoading(true)
+      setRefresh((value) => value + 1)
+    }, 15 * 60 * 1000)
+    const ageUpdate = setInterval(() => setNow(Date.now()), 60 * 1000)
+    return () => {
+      active = false
+      controller.abort()
+      clearTimeout(timeout)
+      clearInterval(nextUpdate)
+      clearInterval(ageUpdate)
+    }
+  }, [refresh])
+
+  useEffect(() => {
+    if (!forecastOpen) return
+    let active = true
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12000)
+    const loadForecast = async () => {
+      try {
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=13.4463&longitude=121.8395&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&hourly=relative_humidity_2m,visibility&forecast_days=7&timezone=Asia%2FManila'
+        const response = await fetch(url, { signal: controller.signal })
+        if (!response.ok) throw new Error('Weather forecast unavailable')
+        const records = parseForecastPayload(await response.json() as unknown)
+        if (active) {
+          setForecast(records)
+          setForecastFailed(records.length === 0)
+        }
+      } catch {
+        if (active) setForecastFailed(true)
+      } finally {
+        clearTimeout(timeout)
+        if (active) setForecastLoading(false)
+      }
+    }
+    void loadForecast()
+    return () => {
+      active = false
+      controller.abort()
+      clearTimeout(timeout)
+    }
+  }, [forecastOpen, forecastRefresh])
+
+  const condition = report ? conditionFor(report.code, report.isDay) : null
+  const age = updatedAt ? Math.max(0, Math.floor((now - updatedAt) / 60000)) : null
+  const status = loading ? 'Updating…' : failed ? 'Update unavailable' : age === null ? 'Not updated' : age ? `Updated ${age} min ago` : 'Updated just now'
+
+  return (
+    <>
+      <View accessibilityLabel="Weather in Boac, Marinduque" accessibilityState={{ busy: loading }} style={[styles.card, { backgroundColor: colors.weatherSurface, borderColor: colors.weatherBorder }]}>
+        <View pointerEvents="none" style={[styles.glow, { backgroundColor: colors.weatherGlow }]} />
+        <View style={styles.header}>
+          <View style={styles.location}>
+            <Icon name="pin" size={15} color={colors.weatherAccent} />
+            <AppText variant="caption" weight="600">Boac, Marinduque</AppText>
+          </View>
+          <View style={styles.actions}>
+            <AppText variant="small" style={{ color: colors.weatherMuted }}>{status}</AppText>
+            <Touchable onPress={refreshWeather} accessibilityLabel="Refresh weather" style={styles.refresh}>
+              <Icon name="restore" size={17} color={colors.weatherAccent} />
+            </Touchable>
+          </View>
+        </View>
+
+        <View style={styles.overview}>
+          <View style={styles.current}>
+            <View style={styles.temperatureRow}>
+              <AppText weight="600" style={[styles.temperature, { fontSize: 56 * scale, lineHeight: 60 * scale }]}>{report ? Math.round(report.temperature) : '—'}</AppText>
+              {report ? <AppText style={[styles.degree, { fontSize: 26 * scale }]}>°C</AppText> : null}
+            </View>
+            <AppText variant="bodyStrong" style={styles.condition}>{condition?.label ?? (loading ? 'Checking the weather…' : 'Weather unavailable')}</AppText>
+            <AppText variant="caption" style={{ color: colors.weatherMuted }}>{report ? `Feels like ${Math.round(report.feelsLike)}°C` : 'Internet needed for weather updates'}</AppText>
+          </View>
+          <View style={styles.visual}>
+            <Icon name={condition?.icon ?? 'cloud'} size={72} color={colors.weatherAccent} />
+            <View style={[styles.conditionPill, { backgroundColor: colors.weatherPill }]}>
+              <AppText variant="small" style={{ color: colors.weatherPillText }}>{condition?.label ?? 'Local weather'}</AppText>
+            </View>
+          </View>
+        </View>
+
+        <Touchable
+          onPress={openForecast}
+          accessibilityLabel="Open seven-day weather forecast"
+          style={[styles.forecastButton, { borderTopColor: colors.weatherBorder }]}
+        >
+          <Icon name="calendar" size={18} color={colors.weatherAccent} />
+          <AppText variant="caption" weight="600" style={[styles.forecastButtonLabel, { color: colors.weatherDetailInk }]}>7-day forecast</AppText>
+          <Icon name="chevron" size={17} color={colors.weatherMuted} />
+        </Touchable>
+      </View>
+
+      <Modal visible={forecastOpen} transparent animationType="slide" onRequestClose={() => setForecastOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <Touchable
+            onPress={() => setForecastOpen(false)}
+            accessibilityLabel="Close weather forecast"
+            pressedScale={1}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            accessibilityViewIsModal
+            style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, space[4]) }]}
+          >
+            <View style={[styles.grabber, { backgroundColor: colors.line }]} />
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeading}>
+                <AppText variant="sectionTitle">7-day forecast</AppText>
+                <AppText variant="small" tone="soft">Boac, Marinduque · Today and the days ahead</AppText>
+              </View>
+              <Touchable
+                onPress={() => setForecastOpen(false)}
+                accessibilityLabel="Close weather forecast"
+                style={[styles.closeButton, { backgroundColor: colors.background }]}
+              >
+                <Icon name="close" size={18} color={colors.ink} />
+              </Touchable>
+            </View>
+
+            {forecastLoading ? (
+              <View style={styles.forecastMessage}>
+                <ActivityIndicator color={colors.teal} />
+                <AppText variant="caption" tone="soft">Loading forecast…</AppText>
+              </View>
+            ) : forecastFailed ? (
+              <View style={styles.forecastMessage}>
+                <Icon name="cloud" size={28} color={colors.inkSoft} />
+                <AppText variant="caption" tone="soft" align="center">The forecast is unavailable right now. Check your connection and try again.</AppText>
+                <Touchable onPress={openForecast} style={styles.tryAgain}>
+                  <AppText variant="caption" tone="teal" weight="600">Try again</AppText>
+                </Touchable>
+              </View>
+            ) : (
+              <ScrollView style={styles.forecastList} contentContainerStyle={styles.forecastContent} showsVerticalScrollIndicator={false}>
+                {forecast.map((day) => {
+                  const dayCondition = conditionFor(day.code, true)
+                  return (
+                    <View key={day.date} style={[styles.forecastRow, { backgroundColor: colors.background }]}>
+                      <View style={styles.forecastTop}>
+                        <View style={styles.forecastDateBlock}>
+                          <AppText variant="caption" weight="700">{day.dateLabel}</AppText>
+                          <AppText variant="small" tone="soft">{dayCondition.label}</AppText>
+                          <AppText variant="small" tone="soft">{day.precipitationChance === null ? 'Rain chance unavailable' : `${Math.round(day.precipitationChance)}% chance of rain`}</AppText>
+                        </View>
+                        <View style={styles.forecastWeather}>
+                          <Icon name={dayCondition.icon} size={20} color={colors.weatherAccent} />
+                          <AppText variant="bodyStrong">{day.high}°</AppText>
+                          <AppText variant="caption" tone="soft">{day.low}°</AppText>
+                        </View>
+                      </View>
+                      <View style={[styles.forecastMetrics, { borderTopColor: colors.line }]}>
+                        <ForecastMetric label="Humidity" value={displayMetric(day.humidity, '%')} />
+                        <ForecastMetric label="Max wind" value={displayMetric(day.wind, ' km/h')} />
+                        <ForecastMetric label="Visibility" value={displayMetric(day.visibility, ' km', 1)} />
+                      </View>
+                    </View>
+                  )
+                })}
+              </ScrollView>
+            )}
+
+            <AppText variant="small" tone="soft" style={styles.attribution}>Forecast data by Open-Meteo.</AppText>
+          </View>
+        </View>
+      </Modal>
+    </>
+  )
+}
+
+function ForecastMetric({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme()
+  return (
+    <View style={styles.forecastMetric}>
+      <AppText variant="small" tone="soft">{label}</AppText>
+      <AppText variant="small" weight="600" style={{ color: colors.weatherDetailInk }}>{value}</AppText>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  card: { overflow: 'hidden', position: 'relative', borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: space[5], paddingVertical: space[4] },
+  glow: { position: 'absolute', width: 190, height: 190, borderRadius: 95, right: -25, top: -36, opacity: 0.75 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
+  location: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  refresh: { width: touchTarget, height: touchTarget, marginVertical: -space[2], marginRight: -space[2], alignItems: 'center', justifyContent: 'center' },
+  overview: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3], paddingTop: space[3], paddingBottom: space[2] },
+  current: { flex: 1, minWidth: 0 },
+  temperatureRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  temperature: { fontWeight: '600', letterSpacing: -2.5, fontVariant: ['tabular-nums'] },
+  degree: { marginTop: 5, marginLeft: space[1], letterSpacing: -0.5 },
+  condition: { marginTop: space[1] },
+  visual: { flexShrink: 0, alignItems: 'center', justifyContent: 'center', gap: space[2] },
+  conditionPill: { maxWidth: 125, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 5, alignItems: 'center' },
+  forecastButton: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: space[2], borderTopWidth: StyleSheet.hairlineWidth, marginTop: space[2], paddingTop: space[2] },
+  forecastButtonLabel: { flex: 1 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.42)', justifyContent: 'flex-end' },
+  sheet: { maxHeight: '88%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: space[5], paddingTop: space[2] },
+  grabber: { width: 38, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: space[4] },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3], marginBottom: space[4] },
+  sheetHeading: { flex: 1, gap: space[1] },
+  closeButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  forecastList: { flexShrink: 1 },
+  forecastContent: { gap: space[2], paddingBottom: space[3] },
+  forecastRow: { padding: space[3], borderRadius: radius.group },
+  forecastTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
+  forecastDateBlock: { flex: 1, gap: 2 },
+  forecastWeather: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  forecastMetrics: { flexDirection: 'row', justifyContent: 'space-between', gap: space[2], borderTopWidth: StyleSheet.hairlineWidth, marginTop: space[3], paddingTop: space[2] },
+  forecastMetric: { flex: 1, gap: 2 },
+  forecastMessage: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: space[3], paddingHorizontal: space[5] },
+  tryAgain: { minHeight: touchTarget, justifyContent: 'center', paddingHorizontal: space[4] },
+  attribution: { marginTop: space[2], textAlign: 'center' },
+})
