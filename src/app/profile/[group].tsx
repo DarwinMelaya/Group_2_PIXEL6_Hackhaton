@@ -1,18 +1,17 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useEffect, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { AppText } from '@/components/ui/AppText'
 import { Button } from '@/components/ui/Button'
 import { GroupedCard } from '@/components/ui/GroupedCard'
 import { BackButton, Banner, Note, PageHeader, TextButton } from '@/components/ui/Layout'
 import { Screen } from '@/components/ui/Screen'
-import { Touchable } from '@/components/ui/Touchable'
-import { MUNICIPALITIES, PROFILE_VALUE_MAX_LENGTH, getProfileGroup, type ProfileField, type ProfileInfo } from '@/data/profile'
+import { ProfileFieldInput } from '@/components/ProfileFieldInput'
+import { getProfileGroup, type ProfileField, type ProfileInfo } from '@/data/profile'
 import { getProfile, saveProfile } from '@/db/profile'
-import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
-import { useTheme } from '@/theme/useTheme'
+import { space } from '@/theme/tokens'
 
 export default function ProfileGroupScreen() {
   const { group: groupId } = useLocalSearchParams<{ group: string }>()
@@ -79,7 +78,6 @@ export default function ProfileGroupScreen() {
 }
 
 function FieldRow({ field, editing, value, onChange }: { field: ProfileField; editing: boolean; value: string; onChange: (value: string) => void }) {
-  const { colors, scale } = useTheme()
   if (!editing) {
     return (
       <View style={styles.row}>
@@ -88,50 +86,12 @@ function FieldRow({ field, editing, value, onChange }: { field: ProfileField; ed
       </View>
     )
   }
-  return (
-    <View style={[styles.row, styles.editingRow]}>
-      <AppText variant="small" tone="soft">{field.label}</AppText>
-      {field.input === 'municipality' ? (
-        <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={field.label}>
-          {MUNICIPALITIES.map((name) => {
-            const selected = value === name
-            return (
-              <Touchable
-                key={name}
-                onPress={() => onChange(name)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                style={[styles.chip, { borderColor: selected ? brand.primary : colors.line, backgroundColor: selected ? brand.primary : 'transparent' }]}
-              >
-                <AppText variant="caption" weight="600" style={selected ? { color: brand.onPrimary } : undefined}>{name}</AppText>
-              </Touchable>
-            )
-          })}
-        </View>
-      ) : (
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          placeholder={field.placeholder ?? 'Add information'}
-          placeholderTextColor={colors.inkSoft}
-          keyboardType={field.keyboardType}
-          autoComplete="off"
-          maxLength={PROFILE_VALUE_MAX_LENGTH}
-          accessibilityLabel={field.label}
-          style={[styles.input, { color: colors.ink, fontSize: typeRamp.body.fontSize * scale }]}
-        />
-      )}
-    </View>
-  )
+  return <ProfileFieldInput field={field} value={value} onChange={onChange} />
 }
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space[4], minHeight: 54, paddingHorizontal: space[4], paddingVertical: space[3] },
-  editingRow: { flexDirection: 'column', alignItems: 'stretch', gap: space[1] },
   label: { flexShrink: 1 },
   value: { flexShrink: 1 },
-  input: { minHeight: touchTarget, paddingVertical: 0 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2], paddingVertical: space[2] },
-  chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space[3], minHeight: 36, justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: space[3], marginTop: space[6] },
 })

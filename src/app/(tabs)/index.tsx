@@ -10,15 +10,17 @@ import { ListRow } from '@/components/ui/ListRow'
 import { Screen } from '@/components/ui/Screen'
 import { Touchable } from '@/components/ui/Touchable'
 import { disasterGuides, firstAidGuides } from '@/data/guides'
+import { useSettings } from '@/providers/SettingsProvider'
 import { space } from '@/theme/tokens'
 
 const openGuide = (id: string) => router.push({ pathname: '/guide/[id]', params: { id } })
 
 export default function HomeScreen() {
+  const { settings } = useSettings()
   return (
     <Screen bottomSpace={FAB_CLEARANCE}>
       <View style={styles.welcome}>
-        <AppText variant="eyebrow" tone="soft">Magandang araw</AppText>
+        <AppText variant="eyebrow" tone="soft">{settings.nickname ? 'Magandang araw, ' + settings.nickname : 'Magandang araw'}</AppText>
         <AppText variant="pageTitle" accessibilityRole="header">Stay ready.</AppText>
         <AppText variant="caption" tone="soft" style={styles.subcopy}>Your everyday safety companion.</AppText>
       </View>

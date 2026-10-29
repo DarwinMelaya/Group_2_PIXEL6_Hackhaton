@@ -1,15 +1,17 @@
 import { PROFILE_KEYS, PROFILE_VALUE_MAX_LENGTH, type ProfileInfo } from '@/data/profile'
-import { isAppearance, isTextSize, type Settings } from '@/db/settings'
+import { NICKNAME_MAX_LENGTH, isAppearance, isTextSize, type Settings } from '@/db/settings'
 
-export type Backup = { app: 'GabAI'; version: 1; exportedAt: string; profile: ProfileInfo; settings: Settings }
+export type BackupSettings = Pick<Settings, 'appearance' | 'textSize'> & Partial<Pick<Settings, 'nickname'>>
+
+export type Backup = { app: 'GabAI'; version: 1; exportedAt: string; profile: ProfileInfo; settings: BackupSettings }
 
 export const MAX_BACKUP_BYTES = 64 * 1024
 
 export class BackupError extends Error {}
 
-export function createBackup(profile: ProfileInfo, settings: Settings) {
+export function createBackup(profile: ProfileInfo, settings: BackupSettings) {
   const exportedAt = new Date().toISOString()
-  const backup: Backup = { app: 'GabAI', version: 1, exportedAt, profile, settings }
+  const backup: Backup = { app: 'GabAI', version: 1, exportedAt, profile, settings: { appearance: settings.appearance, textSize: settings.textSize, nickname: settings.nickname } }
   return { fileName: `GabAI-backup-${exportedAt.slice(0, 10)}.json`, json: JSON.stringify(backup, null, 2) }
 }
 
@@ -33,11 +35,15 @@ export function parseBackup(raw: string): Backup {
     }
     profile[key] = value
   }
+  const settings: BackupSettings = { appearance: candidate.settings.appearance, textSize: candidate.settings.textSize }
+  if (typeof candidate.settings.nickname === 'string') {
+    settings.nickname = candidate.settings.nickname.trim().slice(0, NICKNAME_MAX_LENGTH)
+  }
   return {
     app: 'GabAI',
     version: 1,
     exportedAt: typeof candidate.exportedAt === 'string' ? candidate.exportedAt : '',
     profile,
-    settings: { appearance: candidate.settings.appearance, textSize: candidate.settings.textSize },
+    settings,
   }
 }

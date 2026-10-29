@@ -63,3 +63,5 @@ Verification before finishing a task: `npm run typecheck`, `npm run lint`, `npx 
 - Settings (appearance, text size) live in SQLite and are read synchronously on boot via `SettingsProvider` to avoid a theme flash.
 - Schema changes: add a new function to the end of `migrations` — never edit a shipped migration.
 - Use `Alert.alert` for destructive confirmations; `Banner` for inline feedback.
+
+Onboarding: first launch shows `src/app/onboarding.tsx` (welcome → required nickname → optional profile details). Settings keys `nickname`/`onboarded` gate routes via `Stack.Protected` in `src/app/_layout.tsx`; clearing app data resets `onboarded` and re-triggers onboarding. `onboarded` is never included in backups.

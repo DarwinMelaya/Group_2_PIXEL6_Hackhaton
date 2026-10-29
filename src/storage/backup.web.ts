@@ -1,12 +1,11 @@
 import * as DocumentPicker from 'expo-document-picker'
 
 import type { ProfileInfo } from '@/data/profile'
-import type { Settings } from '@/db/settings'
 
-import { BackupError, MAX_BACKUP_BYTES, createBackup, parseBackup, type Backup } from './backupFormat'
+import { BackupError, MAX_BACKUP_BYTES, createBackup, parseBackup, type Backup, type BackupSettings } from './backupFormat'
 
 /** Web implementation of `backup.ts`: downloads the JSON file through the browser. */
-export async function shareBackup(profile: ProfileInfo, settings: Settings) {
+export async function shareBackup(profile: ProfileInfo, settings: BackupSettings) {
   const { fileName, json } = createBackup(profile, settings)
   const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
   const link = document.createElement('a')

@@ -12,11 +12,13 @@ import { ListRow } from '@/components/ui/ListRow'
 import { Screen } from '@/components/ui/Screen'
 import { profileGroups, type ProfileInfo } from '@/data/profile'
 import { getProfile } from '@/db/profile'
+import { useSettings } from '@/providers/SettingsProvider'
 import { space } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
 export default function ProfileScreen() {
   const db = useSQLiteContext()
+  const { settings } = useSettings()
   const { colors, scale } = useTheme()
   const [profile, setProfile] = useState<ProfileInfo>({})
 
@@ -24,7 +26,8 @@ export default function ProfileScreen() {
     getProfile(db).then(setProfile).catch(() => setProfile({}))
   }, [db]))
 
-  const initials = profile.name?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
+  const name = profile.name || settings.nickname
+  const initials = name?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('')
   const location = [profile.barangay, profile.municipality].filter(Boolean).join(', ')
 
   return (
@@ -34,7 +37,7 @@ export default function ProfileScreen() {
         <View style={[styles.avatar, { backgroundColor: colors.tealSoft }]}>
           {initials ? <AppText weight="600" tone="teal" style={{ fontSize: 26 * scale, lineHeight: 32 * scale }}>{initials}</AppText> : <Icon name="profile" size={32} color={colors.teal} />}
         </View>
-        <AppText variant="headline" align="center">{profile.name || 'Your profile'}</AppText>
+        <AppText variant="headline" align="center">{name || 'Your profile'}</AppText>
         <AppText variant="caption" tone="soft" align="center">{location || 'Essential information. All in one place.'}</AppText>
         <View style={styles.badge}>
           <Icon name="shield" size={13} color={colors.inkSoft} />

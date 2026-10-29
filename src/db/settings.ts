@@ -5,9 +5,11 @@ import { textSizes, type TextSize } from '@/theme/tokens'
 export const APPEARANCES = ['system', 'light', 'dark'] as const
 export type Appearance = (typeof APPEARANCES)[number]
 
-export type Settings = { appearance: Appearance; textSize: TextSize }
+export const NICKNAME_MAX_LENGTH = 40
 
-export const defaultSettings: Settings = { appearance: 'system', textSize: 'standard' }
+export type Settings = { appearance: Appearance; textSize: TextSize; nickname: string; onboarded: boolean }
+
+export const defaultSettings: Settings = { appearance: 'system', textSize: 'standard', nickname: '', onboarded: false }
 
 export const isAppearance = (value: unknown): value is Appearance => APPEARANCES.includes(value as Appearance)
 export const isTextSize = (value: unknown): value is TextSize => typeof value === 'string' && value in textSizes
@@ -22,6 +24,8 @@ export async function readSettings(db: SQLiteDatabase): Promise<Settings> {
   return {
     appearance: isAppearance(stored.appearance) ? stored.appearance : defaultSettings.appearance,
     textSize: isTextSize(stored.textSize) ? stored.textSize : defaultSettings.textSize,
+    nickname: typeof stored.nickname === 'string' ? stored.nickname.trim().slice(0, NICKNAME_MAX_LENGTH) : '',
+    onboarded: stored.onboarded === 'true',
   }
 }
 
@@ -31,7 +35,7 @@ export async function writeSettings(db: SQLiteDatabase, settings: Partial<Settin
       await db.runAsync(
         'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
         key,
-        value,
+        String(value),
       )
     }
   })

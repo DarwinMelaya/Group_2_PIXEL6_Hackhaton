@@ -3,12 +3,11 @@ import { File, Paths } from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
 
 import type { ProfileInfo } from '@/data/profile'
-import type { Settings } from '@/db/settings'
 
-import { BackupError, MAX_BACKUP_BYTES, createBackup, parseBackup, type Backup } from './backupFormat'
+import { BackupError, MAX_BACKUP_BYTES, createBackup, parseBackup, type Backup, type BackupSettings } from './backupFormat'
 
 /** Writes a JSON backup to the cache directory and opens the system share sheet. */
-export async function shareBackup(profile: ProfileInfo, settings: Settings) {
+export async function shareBackup(profile: ProfileInfo, settings: BackupSettings) {
   if (!(await Sharing.isAvailableAsync())) throw new BackupError('Sharing is not available on this device.')
   const { fileName, json } = createBackup(profile, settings)
   const file = new File(Paths.cache, fileName)
