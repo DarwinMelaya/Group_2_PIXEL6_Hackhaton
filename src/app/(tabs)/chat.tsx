@@ -8,18 +8,20 @@ import { TokenUsageModal } from '@/components/TokenUsageModal'
 import { AppText } from '@/components/ui/AppText'
 import { Icon } from '@/components/ui/Icon'
 import { Touchable } from '@/components/ui/Touchable'
+import { MUNICIPALITIES, type ProfileInfo } from '@/data/profile'
 import { addMessage, clearMessages, listMessages, type ChatMessage } from '@/db/chat'
+import { getProfile } from '@/db/profile'
 import { recordTokenUsage } from '@/db/tokenUsage'
 import { useSettings } from '@/providers/SettingsProvider'
-import { generateReply } from '@/services/assistant'
+import { generateReply, type AssistantContext } from '@/services/assistant'
 import { captureAttachment, takeStagedAttachment, AttachmentError, type Attachment, type AttachmentSource } from '@/services/attachment'
 import { deletePhotoFile } from '@/storage/photos'
 import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 import { confirmAction } from '@/utils/dialogs'
 
-const GREETING: ChatMessage = { id: 0, role: 'assistant', body: 'Kumusta! I’m GabAI. Ask me about first aid or disaster preparedness in English, Tagalog, or Taglish.', createdAt: 0 }
-const SUGGESTIONS = ['Ano ang gagawin kapag may lindol?', 'How do I treat a minor burn?', 'What belongs in an emergency kit?']
+const GREETING: ChatMessage = { id: 0, role: 'assistant', body: 'Kumusta! I’m GabAI. Ask me about first aid, disaster preparedness, or Marinduque emergency hotlines in English, Tagalog, or Taglish.', createdAt: 0 }
+const SUGGESTIONS = ['Ano ang gagawin kapag may lindol?', 'How do I treat a minor burn?', 'What belongs in an emergency kit?', 'Sino ang tatawagan ko sa emergency?']
 
 export default function ChatScreen() {
   const db = useSQLiteContext()
@@ -80,7 +82,27 @@ export default function ChatScreen() {
       const body = text || 'Shared a photo for analysis.'
       const question = await addMessage(db, 'user', body, photo && { fileName: photo.fileName, mimeType: photo.mimeType })
       setMessages((current) => [...current, question])
-      const reply = await generateReply(text, messages, settings, photo && { mimeType: photo.mimeType, data: photo.base64 })
+      // Saved profile grounds hotline answers: the address picks the municipality,
+      // the emergency contact answers "who is my emergency contact". Profile reads
+      // are cheap, so fetch per send to pick up edits made mid-chat.
+      const profile = await getProfile(db).catch((): ProfileInfo => ({}))
+      const municipality = MUNICIPALITIES.find((m) => m === profile.municipality)
+      const context: AssistantContext | undefined = municipality || profile.contactPhone
+        ? {
+            municipality,
+            barangay: municipality ? profile.barangay || undefined : undefined,
+            emergencyContact: profile.contactPhone
+              ? { name: profile.contactName || 'Emergency contact', phone: profile.contactPhone, relationship: profile.relationship || undefined }
+              : undefined,
+          }
+        : undefined
+      const reply = await generateReply(
+        text,
+        messages,
+        settings,
+        photo && { mimeType: photo.mimeType, data: photo.base64 },
+        context,
+      )
       setNotice(reply.notice ?? '')
       // A resolved substitute is a better choice than a broken manual one; keep it.
       // Skipped for 'auto' — it should keep re-resolving on every message.

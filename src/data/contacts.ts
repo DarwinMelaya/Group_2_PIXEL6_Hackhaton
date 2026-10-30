@@ -1,4 +1,5 @@
-import type { Municipality } from './profile'
+import { BARANGAYS } from './barangays'
+import { MUNICIPALITIES, type Municipality } from './profile'
 
 /** `pending` rows are placeholders with no verified number yet — never dialable. */
 export type EmergencyContact = { label: string; number: string; pending?: boolean }
@@ -76,3 +77,103 @@ export const getLocalContacts = (municipality: Municipality, barangay?: string):
 ]
 
 export const toDialUri = (number: string) => `tel:${number.replace(/[^+\d]/g, '')}`
+
+/** What kind of office a question is asking for: `ask` matches the question, `label` matches hotline labels. */
+const AGENCY_MATCHERS: { ask: RegExp; label: RegExp }[] = [
+  { ask: /\b(fire|sunog|nasunog|bumbero|bfp)\b/i, label: /fire|bfp/i },
+  { ask: /\b(police|pulis|pnp|nakaw|magnanakaw|ninakawan|krimen|crime|holdap)\b/i, label: /pnp|police/i },
+  {
+    ask: /\b(hospitals?|ospital|ambulans\w*|medical|medika|doktor|doctor|sakit|masakit|sugat|nasugatan|injur\w*|red cross|health)\b/i,
+    label: /hospital|red cross|ambulance|health/i,
+  },
+  { ask: /\b(coast guard|dagat|bangka|ferry|pantalan|port|sea)\b/i, label: /coast guard/i },
+  {
+    ask: /\b(mdrrmo|pdrrmo|bdrrmc|rescue|saklolo|disaster|kalamidad|bagyo|typhoon|lindol|earthquake|baha|binaha|nabaha|flood\w*|landslide|guho|gumuho|evacuat\w*|bakwit|storm)\b/i,
+    label: /mdrrmo|pdrrmo|bdrrmc|rrmc|rescue|emergency/i,
+  },
+  {
+    ask: /\b(municipal hall|munisipyo|mayor|alkalde|lgu|barangay hall|kapitan|provincial|kapitolyo|capitol|gobyerno|government)\b/i,
+    label: /municipal hall|provincial government|barangay hall/i,
+  },
+]
+
+/**
+ * "Brgy. X" mentions, matched to a municipality. A bare barangay name is not enough —
+ * dozens of names are ordinary words ('Tabi', 'Suha', 'Mainit'), so an explicit
+ * `barangay`/`brgy` marker is required before the name.
+ */
+const BARANGAY_ALIASES = MUNICIPALITIES.flatMap((municipality) =>
+  BARANGAYS[municipality].map((name) => ({
+    name,
+    municipality,
+    pattern: new RegExp(`\\b(?:barangay|brgy|bgy)\\.?\\s+${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'),
+  })),
+)
+
+export type ContactSearchPlace = { municipality?: Municipality; barangay?: string }
+
+export type ContactSection = {
+  title: string
+  contacts: EmergencyContact[]
+  /** No listed row matched the asked-for agency here — `contacts` holds the place's full hotline list instead. */
+  fallback?: boolean
+}
+
+export type ContactSearchResult = {
+  sections: ContactSection[]
+  /** The question named a specific agency or hazard, so sections hold only the matching rows. */
+  narrowed: boolean
+  /** Municipalities the answer is scoped to (mentioned in the question, else the saved address). */
+  municipalities: Municipality[]
+}
+
+/**
+ * Searches the verified hotline directory for the rows that fit a question: the agency
+ * it names (fire, police, medical, coast guard, disaster response, LGU) and the place
+ * it names (municipality, `brgy X`, else the caller's saved municipality). When an
+ * agency is given but no place, every municipality is searched. National numbers are
+ * always included — 911 and the Red Cross apply to every emergency.
+ */
+export function searchContacts(query: string, place?: ContactSearchPlace): ContactSearchResult {
+  const text = query.toLowerCase()
+  const patterns = AGENCY_MATCHERS.filter(({ ask }) => ask.test(query)).map(({ label }) => label)
+  const narrowed = patterns.length > 0
+  const keep = (contact: EmergencyContact) => !narrowed || patterns.some((pattern) => pattern.test(contact.label))
+
+  const mentioned = MUNICIPALITIES.filter((municipality) => text.includes(municipality.toLowerCase()))
+  const brgyHit = BARANGAY_ALIASES.find(({ pattern }) => pattern.test(query))
+  const municipalities = mentioned.length
+    ? mentioned
+    : brgyHit
+      ? [brgyHit.municipality]
+      : place?.municipality
+        ? [place.municipality]
+        : []
+
+  const sections: ContactSection[] = []
+  const local = (municipality: Municipality) =>
+    getLocalContacts(
+      municipality,
+      municipality === brgyHit?.municipality ? brgyHit.name : municipality === place?.municipality ? place.barangay : undefined,
+    )
+
+  if (municipalities.length) {
+    for (const municipality of municipalities) {
+      const all = local(municipality)
+      const matched = all.filter(keep)
+      sections.push(matched.length ? { title: municipality, contacts: matched } : { title: municipality, contacts: all, fallback: true })
+    }
+  } else if (narrowed) {
+    // No place anywhere — search every municipality and keep only the rows that fit.
+    for (const municipality of MUNICIPALITIES) {
+      const matched = local(municipality).filter(keep)
+      if (matched.length) sections.push({ title: municipality, contacts: matched })
+    }
+  }
+
+  const provincial = provincialContacts.filter(keep)
+  sections.push(provincial.length ? { title: 'Provincial', contacts: provincial } : { title: 'Provincial', contacts: provincialContacts, fallback: true })
+  sections.push({ title: 'National', contacts: nationalContacts })
+
+  return { sections, narrowed, municipalities }
+}
