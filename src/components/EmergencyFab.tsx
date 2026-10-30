@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Icon } from '@/components/ui/Icon'
 import { Touchable } from '@/components/ui/Touchable'
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible'
 import { brand, space } from '@/theme/tokens'
 
 import { TAB_BAR_HEIGHT } from './TabBar'
@@ -17,7 +18,8 @@ const CHAT_COMPOSER_CLEARANCE = 72
 export function EmergencyFab() {
   const pathname = usePathname()
   const insets = useSafeAreaInsets()
-  if (pathname === '/capture') return null
+  const keyboardVisible = useKeyboardVisible()
+  if (pathname === '/capture' || keyboardVisible) return null
   const bottom = TAB_BAR_HEIGHT + insets.bottom + space[4] + (pathname === '/chat' ? CHAT_COMPOSER_CLEARANCE : 0)
   return (
     <Touchable

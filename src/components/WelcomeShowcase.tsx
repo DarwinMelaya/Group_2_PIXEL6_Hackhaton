@@ -1,4 +1,3 @@
-import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient'
 import { StatusBar } from 'expo-status-bar'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -316,14 +315,21 @@ export function WelcomeShowcase({ onGetStarted }: WelcomeShowcaseProps) {
 
           <View style={styles.actionWrap}>
             <Touchable onPress={onGetStarted} accessibilityRole="button" style={styles.ctaButton}>
-              <ExpoLinearGradient
-                colors={['#ff922b', brand.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.ctaGradient}
-              >
+              <View style={styles.ctaGradient}>
+                {/* Reuse SVG already in the dev client instead of requiring another native view. */}
+                <View style={StyleSheet.absoluteFill} pointerEvents="none" accessible={false}>
+                  <Svg width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none">
+                    <Defs>
+                      <LinearGradient id="welcome-cta" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0" stopColor="#ff922b" />
+                        <Stop offset="1" stopColor={brand.primary} />
+                      </LinearGradient>
+                    </Defs>
+                    <Rect width="1" height="1" fill="url(#welcome-cta)" />
+                  </Svg>
+                </View>
                 <AppText variant="bodyStrong" align="center" style={{ color: brand.onPrimary }}>Get started</AppText>
-              </ExpoLinearGradient>
+              </View>
             </Touchable>
           </View>
         </View>

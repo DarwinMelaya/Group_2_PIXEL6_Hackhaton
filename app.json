@@ -45,7 +45,7 @@
         {
           "photosPermission": "GabAI needs access to your photos so you can attach images of hazards or injuries.",
           "cameraPermission": "GabAI needs camera access so you can capture images of hazards or injuries.",
-          "microphonePermission": false
+          "microphonePermission": "GabAI uses the microphone so you can talk to the assistant."
         }
       ],
       "expo-secure-store",

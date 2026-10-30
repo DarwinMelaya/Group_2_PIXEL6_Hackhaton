@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native'
 import { AppText } from '@/components/ui/AppText'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { Touchable } from '@/components/ui/Touchable'
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible'
 import { brand, space, touchTarget } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
@@ -19,8 +20,11 @@ const tabs: Record<string, { label: string; icon: IconName; raised?: boolean }> 
 }
 
 /** Minimal destinations with the original raised Capture action. */
-export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
+export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const { colors } = useTheme()
+  const keyboardVisible = useKeyboardVisible()
+  const focusedRoute = state.routes[state.index]
+  if (keyboardVisible && descriptors[focusedRoute.key].options.tabBarHideOnKeyboard) return null
   return (
     <View
       accessibilityRole="tabbar"

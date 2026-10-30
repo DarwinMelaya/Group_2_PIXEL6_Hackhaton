@@ -15,6 +15,7 @@ Offline-first safety companion for Marinduque, PH. Expo SDK 58 / React Native, i
 - **Graceful fallback** — cloud/custom failure → local model → bundled-guide keyword retrieval, with a banner explaining which layer answered.
 - **Token usage dialog** — per-source usage ring (only the active source is shown), resettable budgets.
 - Reply length (short/detailed) applies to local and cloud replies.
+- **Voice input** requires a development build containing `expo-speech-recognition`. After adding or upgrading the native package, build a new Android APK with `npx eas-cli@latest build --platform android --profile development` and install it, then run `npx expo start --dev-client`. The microphone stays visible; Expo Go, older builds, and unsupported devices explain why voice is unavailable when it is tapped. Web previews use the browser's speech recognition when supported.
 
 ### Safety content
 

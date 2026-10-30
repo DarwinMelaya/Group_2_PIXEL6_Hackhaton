@@ -1,5 +1,4 @@
 import * as Haptics from 'expo-haptics'
-import { useSpeechRecognitionEvent } from 'expo-speech-recognition'
 import { router, useFocusEffect } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -17,7 +16,7 @@ import { recordTokenUsage } from '@/db/tokenUsage'
 import { useSettings } from '@/providers/SettingsProvider'
 import { generateReply, type AssistantContext } from '@/services/assistant'
 import { captureAttachment, takeStagedAttachment, AttachmentError, type Attachment, type AttachmentSource } from '@/services/attachment'
-import { cancelVoiceInput, ensureVoicePermissions, onDeviceVoiceAvailable, speak, startVoiceInput, stopSpeaking, stopVoiceInput, voiceInputAvailable } from '@/services/voice'
+import { cancelVoiceInput, ensureVoicePermissions, onDeviceVoiceAvailable, speak, startVoiceInput, stopSpeaking, stopVoiceInput, useSpeechRecognitionEvent, voiceInputAvailable, voiceOutputAvailable } from '@/services/voice'
 import { deletePhotoFile } from '@/storage/photos'
 import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
@@ -43,7 +42,7 @@ export default function ChatScreen() {
   // user gets immediate feedback that capture is being set up.
   const [voiceState, setVoiceState] = useState<'idle' | 'starting' | 'listening'>('idle')
   const [speakingId, setSpeakingId] = useState<number | null>(null)
-  const [micAvailable] = useState(() => voiceInputAvailable())
+  const [speakerAvailable] = useState(() => voiceOutputAvailable())
   // Text already in the composer when dictation started — transcripts append to it.
   const voiceBase = useRef('')
   // Which recognizer the current session is using; a failed 'net' session retries on-device.
@@ -100,7 +99,9 @@ export default function ChatScreen() {
     setVoiceState('idle')
     if (event.error === 'aborted' || event.error === 'no-speech' || event.error === 'speech-timeout') return
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {})
-    setNotice('Voice input failed. Check the microphone and try again.')
+    setNotice(event.error === 'service-not-allowed'
+      ? 'Speech recognition is unavailable. Enable a speech recognition service in your phone settings, then try again.'
+      : 'Voice input failed. Check the microphone and try again.')
   })
 
   // Stopping an in-flight ('starting') session cancels it outright; stopping a
@@ -120,6 +121,10 @@ export default function ChatScreen() {
       return
     }
     setNotice('')
+    if (!voiceInputAvailable()) {
+      setNotice('Voice input is unavailable. Update GabAI and check that speech recognition is enabled on your phone, then try again.')
+      return
+    }
     if (!(await ensureVoicePermissions())) {
       setNotice('Voice input needs microphone and speech permission. Allow them in system settings, then try again.')
       return
@@ -136,6 +141,8 @@ export default function ChatScreen() {
     }
   }
 
+  const speechFailed = () => setNotice('Voice playback is unavailable. Install or enable a text-to-speech engine in your phone settings, then try again.')
+
   const toggleSpeak = (item: ChatMessage) => {
     if (speakingId === item.id) {
       setSpeakingId(null)
@@ -143,7 +150,7 @@ export default function ChatScreen() {
       return
     }
     setSpeakingId(item.id)
-    speak(item.body, settings.voiceLanguage, () => setSpeakingId((current) => (current === item.id ? null : current)))
+    speak(item.body, settings.voiceLanguage, () => setSpeakingId((current) => (current === item.id ? null : current)), speechFailed)
   }
 
   const attach = async (source: AttachmentSource) => {
@@ -213,9 +220,9 @@ export default function ChatScreen() {
       if (reply.usage) await recordTokenUsage(db, reply.usage.source, reply.usage).catch(() => {})
       const answer = await addMessage(db, 'assistant', reply.text)
       setMessages((current) => [...current, answer])
-      if (settings.voiceReplies) {
+      if (settings.voiceReplies && speakerAvailable) {
         setSpeakingId(answer.id)
-        speak(reply.text, settings.voiceLanguage, () => setSpeakingId((current) => (current === answer.id ? null : current)))
+        speak(reply.text, settings.voiceLanguage, () => setSpeakingId((current) => (current === answer.id ? null : current)), speechFailed)
       }
     } catch {
       // Keep the typed text so a failed send does not eat the user's message.
@@ -247,7 +254,7 @@ export default function ChatScreen() {
   const canSend = Boolean(draft.trim() || attachment) && !thinking
 
   return (
-    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={insets.top + touchTarget}>
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'web' ? undefined : 'padding'}>
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
         <Touchable onPress={() => setUsageOpen(true)} accessibilityLabel="Token usage" style={styles.topAction}>
           <Icon name="chart" size={20} color={colors.ink} />
@@ -261,12 +268,14 @@ export default function ChatScreen() {
       </View>
       <FlatList
         ref={list}
+        style={styles.fill}
         data={data}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
+        onLayout={() => list.current?.scrollToEnd({ animated: false })}
         ListHeaderComponent={
           <View style={styles.intro}>
             <View style={[styles.orb, { backgroundColor: colors.tealSoft }]}><Icon name="shield" size={27} color={colors.teal} /></View>
@@ -287,7 +296,7 @@ export default function ChatScreen() {
                 />
               ) : null}
               <AppText style={mine ? { color: brand.onPrimary } : undefined}>{item.body}</AppText>
-              {!mine ? (
+              {!mine && speakerAvailable ? (
                 <Touchable
                   onPress={() => toggleSpeak(item)}
                   accessibilityLabel={speakingId === item.id ? 'Stop reading reply' : 'Read reply aloud'}
@@ -342,21 +351,19 @@ export default function ChatScreen() {
           maxLength={500}
           style={[styles.input, { color: colors.ink, fontSize: typeRamp.body.fontSize * scale }]}
         />
-        {micAvailable && (
-          <Touchable
-            onPress={toggleMic}
-            disabled={thinking}
-            accessibilityLabel={voiceState === 'listening' ? 'Stop voice input' : voiceState === 'starting' ? 'Starting microphone' : 'Voice input'}
-            accessibilityState={{ selected: voiceState !== 'idle', busy: voiceState === 'starting' }}
-            style={[styles.mic, voiceState === 'listening' && { backgroundColor: brand.emergency }, voiceState === 'starting' && { backgroundColor: colors.dangerSoft }]}
-          >
-            {voiceState === 'starting' ? (
-              <ActivityIndicator size="small" color={colors.danger} />
-            ) : (
-              <Icon name={voiceState === 'listening' ? 'stop' : 'mic'} size={19} color={voiceState === 'listening' ? brand.onPrimary : thinking ? colors.inkSoft : colors.ink} />
-            )}
-          </Touchable>
-        )}
+        <Touchable
+          onPress={toggleMic}
+          disabled={thinking}
+          accessibilityLabel={voiceState === 'listening' ? 'Stop voice input' : voiceState === 'starting' ? 'Starting microphone' : 'Voice input'}
+          accessibilityState={{ selected: voiceState !== 'idle', busy: voiceState === 'starting' }}
+          style={[styles.mic, voiceState === 'listening' && { backgroundColor: brand.emergency }, voiceState === 'starting' && { backgroundColor: colors.dangerSoft }]}
+        >
+          {voiceState === 'starting' ? (
+            <ActivityIndicator size="small" color={colors.danger} />
+          ) : (
+            <Icon name={voiceState === 'listening' ? 'stop' : 'mic'} size={19} color={voiceState === 'listening' ? brand.onPrimary : thinking ? colors.inkSoft : colors.ink} />
+          )}
+        </Touchable>
         <Touchable onPress={send} disabled={!canSend} accessibilityLabel="Send message" style={[styles.send, { opacity: canSend ? 1 : 0.5 }]}>
           <Icon name="send" size={19} color={brand.onPrimary} />
         </Touchable>
