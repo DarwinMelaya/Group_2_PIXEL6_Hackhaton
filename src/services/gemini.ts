@@ -27,6 +27,11 @@ function toParts(message: GeminiHistoryMessage): GeminiPart[] {
 
 type GeminiErrorBody = { error?: { message?: string; status?: string; details?: { reason?: string }[] } }
 
+/** Trims raw API messages down to a one-line, user-readable sentence. */
+function trimApiMessage(message: string): string {
+  return message.replace(/\s+/g, ' ').slice(0, 160).trim()
+}
+
 function mapError(status: number, body: GeminiErrorBody): GeminiError {
   const apiMessage = body.error?.message
   const keyInvalid = apiMessage?.includes('API_KEY_INVALID') || body.error?.status === 'API_KEY_INVALID' ||
@@ -38,7 +43,10 @@ function mapError(status: number, body: GeminiErrorBody): GeminiError {
     return new GeminiError('This API key was rejected. Check that you copied it correctly.', 'auth')
   }
   if (status === 429) return new GeminiError('Gemini free-tier limit reached. Try again later.', 'quota')
-  return new GeminiError(apiMessage ?? `Gemini request failed (HTTP ${status}).`, 'other')
+  if (status === 404 || (apiMessage && /not found|not supported|generateContent/i.test(apiMessage))) {
+    return new GeminiError('That model cannot answer in chat. Pick another model in Chat settings.', 'other')
+  }
+  return new GeminiError(apiMessage ? trimApiMessage(apiMessage) : `Gemini request failed (HTTP ${status}).`, 'other')
 }
 
 type GeminiUsageBody = { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } }

@@ -77,7 +77,13 @@ async function download() {
       if (partFile.exists) partFile.delete()
     } catch {}
     if (cancelled) setState({ status: 'missing', progress: 0 })
-    else setState({ status: 'missing', progress: 0, error: error instanceof Error ? error.message : 'Download failed. Please try again.' })
+    else {
+      // Raw download errors are socket/URL internals — show the user something readable.
+      const message = error instanceof Error && error.message.includes('incomplete')
+        ? error.message
+        : 'Download failed. Check your connection and free space, then try again.'
+      setState({ status: 'missing', progress: 0, error: message })
+    }
   }
 }
 

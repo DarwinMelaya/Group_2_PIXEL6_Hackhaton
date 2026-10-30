@@ -57,9 +57,13 @@ function errorMessage(status: number, body: CompletionBody): BackendError {
     return new BackendError('The backend rejected the token. Check it and try again.', 'auth')
   }
   if (status === 404) {
+    // On OpenAI-compatible servers a 404 is usually an unknown model name, not a missing route.
+    if (apiMessage && /model|not found/i.test(apiMessage)) {
+      return new BackendError('The backend does not recognize that model name. Check it in Chat settings.', 'other')
+    }
     return new BackendError('Endpoint not found — check the URL and that the server exposes /v1/chat/completions.', 'other')
   }
-  return new BackendError(apiMessage ?? `Backend request failed (HTTP ${status}).`, 'other')
+  return new BackendError(apiMessage ? apiMessage.replace(/\s+/g, ' ').slice(0, 160).trim() : `Backend request failed (HTTP ${status}).`, 'other')
 }
 
 /**

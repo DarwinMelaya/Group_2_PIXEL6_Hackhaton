@@ -133,9 +133,9 @@ export async function generateReply(
     if (!apiKey) {
       notice = 'Cloud AI is not set up. Answered offline.'
     } else {
-      const resolved = await resolveModel(apiKey, settings.geminiModel, { needsVision: Boolean(image) })
-      if (resolved.substituted) notice = `Switched to ${modelLabel(resolved.model)} (${resolved.reason}).`
       try {
+        const resolved = await resolveModel(apiKey, settings.geminiModel, { needsVision: Boolean(image) })
+        if (resolved.substituted) notice = `Switched to ${modelLabel(resolved.model)} (${resolved.reason}).`
         const result = await generateGemini({ apiKey, model: resolved.model, system, history: [...modelHistory, current] })
         return { text: result.text, model: resolved.model, notice, usage: { source: 'gemini', ...result.usage } }
       } catch (error) {

@@ -25,7 +25,7 @@ gabai/
     │   ├── +not-found.tsx
     │   ├── onboarding.tsx
     │   ├── settings.tsx
-    │   ├── chat-settings.tsx     # AI mode: local Gemma vs Gemini
+    │   ├── chat-settings.tsx     # AI mode: local Gemma / Gemini / custom backend
     │   ├── emergency.tsx
     │   ├── (tabs)/
     │   │   ├── _layout.tsx
@@ -81,8 +81,11 @@ gabai/
     ├── providers/
     │   └── SettingsProvider.tsx  # Sync boot read to avoid theme flash
     ├── services/
-    │   ├── assistant.ts          # Gemini → local model → guide retrieval
+    │   ├── assistant.ts          # Dispatcher: cloud/custom → local model → guide retrieval
+    │   ├── attachment.ts         # Camera/library capture → chat photo attachment
+    │   ├── customBackend.ts      # OpenAI-compatible server (Ollama, LM Studio…)
     │   ├── gemini.ts
+    │   ├── geminiModels.ts       # models.list discovery + auto model selection
     │   ├── localModel.ts         # llama.rn Gemma 4 E2B
     │   ├── localModel.web.ts
     │   ├── deviceSpecs.ts

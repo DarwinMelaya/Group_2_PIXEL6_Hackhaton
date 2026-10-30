@@ -90,6 +90,10 @@ export default function ChatScreen() {
       if (reply.usage) await recordTokenUsage(db, reply.usage.source, reply.usage).catch(() => {})
       const answer = await addMessage(db, 'assistant', reply.text)
       setMessages((current) => [...current, answer])
+    } catch {
+      // Keep the typed text so a failed send does not eat the user's message.
+      setDraft(text)
+      setNotice('Something went wrong sending that. Please try again.')
     } finally {
       setThinking(false)
     }
