@@ -24,6 +24,6 @@ export function GuideIllustration({ guide, phase }: { guide: Guide; phase: strin
 const styles = StyleSheet.create({
   // Size the frame independently of the bundled image's intrinsic dimensions.
   frame: { width: '100%', aspectRatio: 3 / 2, overflow: 'hidden' },
-  // Override the static asset's 1200 × 800 intrinsic size on both axes.
+  // Override the static asset's 720 × 480 intrinsic size on both axes.
   image: { width: '100%', height: '100%' },
 })

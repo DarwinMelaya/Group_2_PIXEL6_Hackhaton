@@ -219,36 +219,30 @@ export function WeatherCard() {
 
   const condition = report ? conditionFor(report.code, report.isDay) : null
   const artwork = condition?.background ? weatherArtwork[condition.background] : null
-  const foreground = artwork ? colors.weatherOnImage : colors.ink
-  const secondary = artwork ? colors.weatherOnImage : colors.weatherMuted
-  const accent = artwork ? colors.weatherOnImage : colors.weatherAccent
   const age = updatedAt ? Math.max(0, Math.floor((now - updatedAt) / 60000)) : null
   const status = loading ? 'Updating…' : failed ? 'Update unavailable' : age === null ? 'Not updated' : age ? `Updated ${age} min ago` : 'Updated just now'
 
   return (
     <>
-      <View accessibilityLabel="Weather in Boac, Marinduque" accessibilityState={{ busy: loading }} style={[styles.card, { backgroundColor: colors.weatherSurface, borderColor: colors.weatherBorder }]}>
+      <View accessibilityLabel="Weather in Boac, Marinduque" accessibilityState={{ busy: loading }} style={[styles.card, { backgroundColor: colors.surface }]}>
         {artwork ? (
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <Image
-              source={artwork}
-              resizeMode="cover"
-              accessible={false}
-              pointerEvents="none"
-              style={[StyleSheet.absoluteFill, { opacity: 0.5 }]}
-            />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: report?.isDay ? colors.weatherImageScrim : colors.weatherNightScrim }]} />
-          </View>
+          <Image
+            source={artwork}
+            resizeMode="cover"
+            accessible={false}
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.artwork]}
+          />
         ) : null}
         <View style={styles.header}>
           <View style={styles.location}>
-            <Icon name="pin" size={15} color={accent} />
-            <AppText variant="caption" weight="600" style={{ color: foreground }}>Boac, Marinduque</AppText>
+            <Icon name="pin" size={15} color={colors.inkSoft} />
+            <AppText variant="caption" weight="600">Boac, Marinduque</AppText>
           </View>
           <View style={styles.actions}>
-            <AppText variant="small" style={{ color: secondary }}>{status}</AppText>
+            <AppText variant="small" tone="soft">{status}</AppText>
             <Touchable onPress={refreshWeather} accessibilityLabel="Refresh weather" style={styles.refresh}>
-              <Icon name="restore" size={17} color={accent} />
+              <Icon name="restore" size={17} color={colors.teal} />
             </Touchable>
           </View>
         </View>
@@ -256,25 +250,25 @@ export function WeatherCard() {
         <View style={styles.overview}>
           <View style={styles.current}>
             <View style={styles.temperatureRow}>
-              <AppText weight="400" style={[styles.temperature, { color: foreground, fontSize: 56 * scale, lineHeight: 64 * scale }]}>{report ? Math.round(report.temperature) : '—'}</AppText>
-              {report ? <AppText style={[styles.degree, { color: foreground, fontSize: 26 * scale }]}>°C</AppText> : null}
+              <AppText weight="400" style={[styles.temperature, { fontSize: 56 * scale, lineHeight: 64 * scale }]}>{report ? Math.round(report.temperature) : '—'}</AppText>
+              {report ? <AppText style={[styles.degree, { fontSize: 26 * scale }]}>°C</AppText> : null}
             </View>
-            <AppText variant="bodyStrong" style={[styles.condition, { color: foreground }]}>{condition?.label ?? (loading ? 'Checking the weather…' : 'Weather unavailable')}</AppText>
-            <AppText variant="caption" style={{ color: secondary }}>{report ? `Feels like ${Math.round(report.feelsLike)}°C` : 'Internet needed for weather updates'}</AppText>
+            <AppText variant="bodyStrong" style={styles.condition}>{condition?.label ?? (loading ? 'Checking the weather…' : 'Weather unavailable')}</AppText>
+            <AppText variant="caption" tone="soft">{report ? `Feels like ${Math.round(report.feelsLike)}°C` : 'Internet needed for weather updates'}</AppText>
           </View>
           <View style={styles.visual}>
-            <Icon name={condition?.icon ?? 'cloud'} size={72} color={accent} />
+            <Icon name={condition?.icon ?? 'cloud'} size={48} color={colors.weatherAccent} />
           </View>
         </View>
 
         <Touchable
           onPress={openForecast}
           accessibilityLabel="Open seven-day weather forecast"
-          style={[styles.forecastButton, { borderTopColor: artwork ? colors.weatherImageLine : colors.weatherBorder }]}
+          style={[styles.forecastButton, { borderTopColor: colors.line }]}
         >
-          <Icon name="calendar" size={18} color={accent} />
-          <AppText variant="caption" weight="600" style={[styles.forecastButtonLabel, { color: artwork ? foreground : colors.weatherDetailInk }]}>7-day forecast</AppText>
-          <Icon name="chevron" size={17} color={secondary} />
+          <Icon name="calendar" size={18} color={colors.teal} />
+          <AppText variant="caption" weight="600" style={styles.forecastButtonLabel}>7-day forecast</AppText>
+          <Icon name="chevron" size={17} color={colors.inkSoft} />
         </Touchable>
       </View>
 
@@ -366,7 +360,8 @@ function ForecastMetric({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  card: { overflow: 'hidden', position: 'relative', borderRadius: radius.group, paddingHorizontal: space[4], paddingVertical: space[4] },
+  card: { overflow: 'hidden', borderRadius: radius.group, padding: space[4] },
+  artwork: { opacity: 0.2 },
   header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
   location: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   actions: { flexDirection: 'row', alignItems: 'center', gap: space[1] },

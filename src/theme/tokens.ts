@@ -7,27 +7,17 @@ export const palette = {
     background: '#f2f2f7',
     surface: '#ffffff',
     line: '#e5e5ea',
-    teal: '#d62013',
-    tealDark: '#b51a0f',
-    tealSoft: '#feeceb',
-    muted: '#a19998',
+    teal: '#d9480f',
+    tealDark: '#b93d0a',
+    tealSoft: '#fff0e5',
+    muted: '#a89b94',
     danger: '#c83d3d',
     dangerSoft: '#fbe6e6',
     tipText: '#755815',
     tipBackground: '#fff4d9',
     overlay: 'rgba(24, 16, 15, 0.45)',
-    weatherSurface: '#ffffff',
     weatherAccent: '#3275a4',
-    weatherGlow: '#e2eff8',
-    weatherBorder: '#e5e5ea',
-    weatherMuted: '#526e80',
-    weatherPill: '#d4e8f5',
-    weatherPillText: '#28556e',
     weatherDetailInk: '#25485e',
-    weatherOnImage: '#ffffff',
-    weatherImageScrim: 'rgba(0, 12, 28, 0.56)',
-    weatherNightScrim: 'rgba(0, 12, 28, 0.65)',
-    weatherImageLine: 'rgba(255, 255, 255, 0.3)',
   },
   dark: {
     ink: '#ffffff',
@@ -44,18 +34,8 @@ export const palette = {
     tipText: 'rgba(255, 255, 255, 0.72)',
     tipBackground: '#1c1c1e',
     overlay: 'rgba(0, 0, 0, 0.6)',
-    weatherSurface: '#1c1c1e',
     weatherAccent: '#afd9ec',
-    weatherGlow: '#103c57',
-    weatherBorder: '#38383a',
-    weatherMuted: '#aec7d5',
-    weatherPill: '#1d4b64',
-    weatherPillText: '#d4ecf7',
     weatherDetailInk: '#e1f3fb',
-    weatherOnImage: '#ffffff',
-    weatherImageScrim: 'rgba(0, 12, 28, 0.56)',
-    weatherNightScrim: 'rgba(0, 12, 28, 0.65)',
-    weatherImageLine: 'rgba(255, 255, 255, 0.3)',
   },
 } as const
 
@@ -64,7 +44,7 @@ export type Colors = { [K in keyof (typeof palette)['light']]: string }
 
 /** Fixed brand colors that do not change between light and dark mode. */
 export const brand = {
-  primary: '#d62013',
+  primary: '#e8590c',
   emergency: '#c83d3d',
   onPrimary: '#ffffff',
 } as const
@@ -78,7 +58,7 @@ export const tones = {
   coral: { fg: '#d45938', bg: '#fff0e8' },
   orange: { fg: '#d45938', bg: '#fff0e8' },
   rose: { fg: '#c74961', bg: '#ffebef' },
-  teal: { fg: '#d62013', bg: '#feeceb' },
+  teal: { fg: '#d9480f', bg: '#fff0e5' },
 } as const
 
 export type Tone = keyof typeof tones

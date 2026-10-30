@@ -16,7 +16,7 @@ import { useSettings } from '@/providers/SettingsProvider'
 import { clearAllData } from '@/services/appData'
 import { pickBackup, shareBackup } from '@/storage/backup'
 import { BackupError } from '@/storage/backupFormat'
-import { brand, palette, radius, space, textSizes, touchTarget, type TextSize } from '@/theme/tokens'
+import { radius, space, textSizes, touchTarget, type TextSize } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 import { confirmAction } from '@/utils/dialogs'
 
@@ -93,7 +93,7 @@ export default function SettingsScreen() {
       <BackButton />
       <PageHeader title="Settings" subtitle="Make GabAI work better for you." />
 
-      <View style={styles.section}>
+      <View style={[styles.section, styles.firstSection]}>
         <SettingsLabel>Appearance</SettingsLabel>
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <View style={styles.appearanceRow} accessibilityRole="radiogroup" accessibilityLabel="Color appearance">
@@ -108,7 +108,6 @@ export default function SettingsScreen() {
                   accessibilityLabel={`${option.label} appearance`}
                   style={[styles.appearanceOption, { borderColor: selected ? colors.teal : colors.line, backgroundColor: selected ? colors.tealSoft : 'transparent' }]}
                 >
-                  <AppearancePreview value={option.value} />
                   <View style={styles.optionLabel}>
                     <Icon name={option.icon} size={16} color={colors.ink} />
                     <AppText variant="caption">{option.label}</AppText>
@@ -161,7 +160,6 @@ export default function SettingsScreen() {
           <ListRow title="Back up data" subtitle="Export a JSON file" leading="download" onPress={exportBackup} />
           <ListRow title="Restore data" subtitle="Import a GabAI backup" leading="restore" onPress={restoreBackup} />
         </GroupedCard>
-        <AppText variant="small" tone="soft" style={styles.footnote}>Includes profile details and appearance preferences. Chat history and photos are not included. Backups are not encrypted.</AppText>
       </View>
 
       <View style={styles.section}>
@@ -169,7 +167,6 @@ export default function SettingsScreen() {
         <GroupedCard>
           <ListRow title="Clear data" subtitle="Delete everything stored on this device" leading="trash" destructive onPress={clearData} />
         </GroupedCard>
-        <AppText variant="small" tone="soft" style={styles.footnote}>Core safety guides remain available offline after clearing data.</AppText>
       </View>
 
       {feedback && <Banner text={feedback.text} tone={feedback.error ? 'error' : 'info'} />}
@@ -177,39 +174,18 @@ export default function SettingsScreen() {
   )
 }
 
-function AppearancePreview({ value }: { value: Appearance }) {
-  const halves = [value] as const
-  return (
-    <View style={styles.previewFrame}>
-      {halves.map((scheme) => {
-        const bar = scheme === 'light' ? palette.light.surface : palette.dark.line
-        return (
-          <View key={scheme} style={[styles.previewHalf, { backgroundColor: palette[scheme].background }]}>
-            <View style={[styles.previewBar, { width: '60%', backgroundColor: brand.primary }]} />
-            <View style={[styles.previewBar, { backgroundColor: bar }]} />
-            <View style={[styles.previewBar, { backgroundColor: bar }]} />
-          </View>
-        )
-      })}
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
   section: { marginTop: space[6] },
+  firstSection: { marginTop: 0 },
   card: { borderRadius: radius.group, padding: space[4] },
   appearanceRow: { flexDirection: 'row', gap: space[2] },
-  appearanceOption: { flex: 1, alignItems: 'center', gap: space[2], padding: space[3], borderWidth: 1, borderRadius: radius.group },
+  appearanceOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: touchTarget, paddingHorizontal: space[3], borderWidth: 1, borderRadius: radius.group },
   optionLabel: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   check: { width: 20, height: 20, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  previewFrame: { flexDirection: 'row', width: 56, height: 72, borderRadius: 10, borderWidth: 1, borderColor: '#d1d1d6', overflow: 'hidden' },
-  previewHalf: { flex: 1, gap: space[2], paddingVertical: space[3], paddingHorizontal: 6 },
-  previewBar: { height: 9, borderRadius: space[1] },
   textSize: { marginTop: space[5], paddingTop: space[4], borderTopWidth: StyleSheet.hairlineWidth },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: space[2] },
   segmented: { flexDirection: 'row', gap: space[1], padding: space[1], borderRadius: radius.md, marginTop: space[3] },
   segment: { flex: 1, minHeight: touchTarget, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   segmentSelected: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   preview: { marginTop: space[4] },
-  footnote: { marginTop: space[2], marginHorizontal: space[4] },
 })

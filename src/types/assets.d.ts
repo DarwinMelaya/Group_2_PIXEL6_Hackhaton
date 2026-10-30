@@ -1,6 +1,6 @@
 import type { ImageSourcePropType } from 'react-native'
 
-declare module '*.jpg' {
+declare module '*.webp' {
   const value: ImageSourcePropType
   export default value
 }
