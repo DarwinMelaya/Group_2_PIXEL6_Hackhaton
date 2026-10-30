@@ -1,45 +1,24 @@
 import * as Haptics from 'expo-haptics'
 import * as ImagePicker from 'expo-image-picker'
 import { useEffect, useState } from 'react'
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Keyboard, Platform, StyleSheet, View } from 'react-native'
 
 import {
   AVATAR_PALETTES,
   AnimatedAvatarSurface,
   ILLUSTRATED_AVATAR_META,
-  IllustratedAvatarSvg,
   getAvatarPalette,
   getInitials,
   pickRandomAvatarCombo,
   type AvatarVisualSnapshot,
   type RandomAvatarCombo,
 } from '@/components/AvatarArt'
-import { AppText } from '@/components/ui/AppText'
-import { GroupedCard } from '@/components/ui/GroupedCard'
+import { AvatarEditSheet } from '@/components/AvatarEditSheet'
+import { AvatarPresetSection, AvatarToneSection } from '@/components/AvatarSheetPickers'
 import { Icon } from '@/components/ui/Icon'
-import { Banner, TextButton } from '@/components/ui/Layout'
-import { ListRow } from '@/components/ui/ListRow'
 import { Touchable } from '@/components/ui/Touchable'
-import {
-  AVATAR_PRESETS,
-  AVATAR_TONES,
-  NICKNAME_MAX_LENGTH,
-  type AvatarPreset,
-  type AvatarTone,
-} from '@/db/settings'
-import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
+import type { AvatarPreset, AvatarTone } from '@/db/settings'
+import { brand } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
 export { getAvatarPalette, getInitials } from '@/components/AvatarArt'
@@ -91,8 +70,7 @@ export function ProfileAvatarPicker({
   onSelectTone,
   onSelectPreset,
 }: ProfileAvatarPickerProps) {
-  const { colors, scheme, scale } = useTheme()
-  const insets = useSafeAreaInsets()
+  const { colors, scheme } = useTheme()
   const [internalOpen, setInternalOpen] = useState(false)
   const [failedUri, setFailedUri] = useState<string | null>(null)
   const [sheetError, setSheetError] = useState('')
@@ -247,7 +225,6 @@ export function ProfileAvatarPicker({
         ? `Initials · ${AVATAR_PALETTES[tone].label}`
         : `${ILLUSTRATED_AVATAR_META[preset].label} · ${AVATAR_PALETTES[tone].label}`
 
-  const sheetBackground = scheme === 'dark' ? '#121214' : colors.background
   const tilePalette = getAvatarPalette(tone, scheme)
 
   return (
@@ -283,300 +260,48 @@ export function ProfileAvatarPicker({
         </View>
       </Touchable>
 
-      <Modal
-        visible={open}
-        transparent
-        animationType="slide"
+      <AvatarEditSheet
+        open={open}
         onShow={() => {
           setDraftNickname(nickname ?? '')
           setSheetError('')
         }}
-        onRequestClose={() => closeAndCommitSheet(false)}
+        onDismiss={() => closeAndCommitSheet(false)}
+        onDone={() => closeAndCommitSheet(true)}
+        snapshot={activeSnapshot}
+        photoBorderColor={colors.line}
+        onPhotoError={(uri) => setFailedUri(uri)}
+        statusText={statusText}
+        nickname={
+          onChangeNickname
+            ? {
+                value: draftNickname,
+                focused: nicknameFocused,
+                onChange: (value) => {
+                  setDraftNickname(value)
+                  if (sheetError) setSheetError('')
+                },
+                onFocusChange: setNicknameFocused,
+                onClear: () => setDraftNickname(''),
+                onSubmit: () => closeAndCommitSheet(true),
+              }
+            : undefined
+        }
+        hasPhoto={hasPhoto}
+        onPickPhoto={pickFromSource}
+        onRemovePhoto={handleRemovePhoto}
+        error={sheetError}
       >
-        <KeyboardAvoidingView
-          style={styles.modalWrap}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <Pressable
-            style={[styles.backdrop, { backgroundColor: colors.overlay }]}
-            onPress={() => closeAndCommitSheet(false)}
-          />
-          <View
-            style={[
-              styles.sheet,
-              {
-                backgroundColor: sheetBackground,
-                borderColor: scheme === 'dark' ? colors.line : 'transparent',
-                paddingBottom: Math.max(insets.bottom, space[4]) + space[2],
-              },
-            ]}
-          >
-            <View style={[styles.grabber, { backgroundColor: colors.muted }]} />
-
-            <View style={styles.sheetHeader}>
-              <View style={styles.headerSpacer} />
-              <AppText variant="bodyStrong" align="center" accessibilityRole="header">
-                Edit Profile
-              </AppText>
-              <View style={styles.headerAction}>
-                <TextButton label="Done" onPress={() => closeAndCommitSheet(true)} />
-              </View>
-            </View>
-
-            <ScrollView
-              bounces={false}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.sheetScroll}
-            >
-              {/* Clean Live Preview */}
-              <View style={styles.previewArea}>
-                <AnimatedAvatarSurface
-                  snapshot={activeSnapshot}
-                  size={80}
-                  scheme={scheme}
-                  photoBorderColor={colors.line}
-                  onPhotoError={(uri) => setFailedUri(uri)}
-                />
-                <AppText variant="small" tone="soft">
-                  {statusText}
-                </AppText>
-              </View>
-
-              {/* Optional Nickname Editor */}
-              {onChangeNickname && (
-                <View style={styles.sectionBlock}>
-                  <AppText variant="small" tone="soft" weight="600" style={styles.sectionLabel}>
-                    Nickname
-                  </AppText>
-                  <View
-                    style={[
-                      styles.nicknameFieldWrap,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: nicknameFocused ? colors.teal : colors.line,
-                      },
-                    ]}
-                  >
-                    <TextInput
-                      value={draftNickname}
-                      onChangeText={(value) => {
-                        setDraftNickname(value)
-                        if (sheetError) setSheetError('')
-                      }}
-                      onFocus={() => setNicknameFocused(true)}
-                      onBlur={() => setNicknameFocused(false)}
-                      placeholder="Your nickname"
-                      placeholderTextColor={colors.inkSoft}
-                      autoCapitalize="words"
-                      autoComplete="off"
-                      autoCorrect={false}
-                      maxLength={NICKNAME_MAX_LENGTH}
-                      returnKeyType="done"
-                      onSubmitEditing={() => closeAndCommitSheet(true)}
-                      accessibilityLabel="Nickname"
-                      style={[
-                        styles.nicknameField,
-                        {
-                          color: colors.ink,
-                          fontSize: typeRamp.body.fontSize * scale,
-                        },
-                      ]}
-                    />
-                    {draftNickname.length > 0 && (
-                      <Touchable
-                        onPress={() => setDraftNickname('')}
-                        accessibilityLabel="Clear nickname"
-                        hitSlop={10}
-                        style={styles.clearNicknameBtn}
-                      >
-                        <View style={[styles.clearNicknameBadge, { backgroundColor: colors.line }]}>
-                          <Icon name="close" size={11} color={colors.inkSoft} />
-                        </View>
-                      </Touchable>
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Organized 2x5 Avatar Grid */}
-              <View style={styles.sectionBlock}>
-                <View style={styles.sectionRow}>
-                  <AppText variant="small" tone="soft" weight="600">
-                    Avatar
-                  </AppText>
-                  <Touchable
-                    onPress={handleRollLockedRandom}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Pick a random avatar and color"
-                    style={styles.randomizeBtn}
-                  >
-                    <Icon name="shuffle" size={13} color={colors.teal} />
-                    <AppText variant="small" tone="teal" weight="600">
-                      Randomize
-                    </AppText>
-                  </Touchable>
-                </View>
-
-                <View
-                  style={[styles.presetGridCard, { backgroundColor: colors.surface }]}
-                  accessibilityRole="radiogroup"
-                  accessibilityLabel="Avatar style"
-                >
-                  {AVATAR_PRESETS.map((item) => {
-                    const selected = !hasPhoto && preset === item
-                    const label =
-                      item === 'auto'
-                        ? 'Auto'
-                        : item === 'initials'
-                          ? 'Initials'
-                          : ILLUSTRATED_AVATAR_META[item].label
-
-                    return (
-                      <Touchable
-                        key={item}
-                        onPress={() => handleSelectPresetTile(item)}
-                        pressedScale={0.93}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected }}
-                        accessibilityLabel={
-                          item === 'auto'
-                            ? 'Auto-changing random avatar'
-                            : item === 'initials'
-                              ? 'Initials monogram avatar'
-                              : `${ILLUSTRATED_AVATAR_META[item].label} avatar`
-                        }
-                        style={styles.presetTile}
-                      >
-                        <View
-                          style={[
-                            styles.presetRing,
-                            { borderColor: selected ? colors.teal : 'transparent' },
-                          ]}
-                        >
-                          <View
-                            style={[
-                              styles.presetCircle,
-                              {
-                                backgroundColor:
-                                  item === 'auto' ? colors.tealSoft : tilePalette.bg,
-                                borderColor: selected ? colors.teal : tilePalette.ring,
-                              },
-                            ]}
-                          >
-                            {item === 'auto' ? (
-                              <Icon name="shuffle" size={19} color={colors.teal} />
-                            ) : item === 'initials' ? (
-                              <Text
-                                allowFontScaling={false}
-                                style={[styles.tileMonogram, { color: tilePalette.fg }]}
-                              >
-                                {initials || 'Aa'}
-                              </Text>
-                            ) : (
-                              <IllustratedAvatarSvg
-                                variant={item}
-                                palette={tilePalette}
-                                size={44}
-                              />
-                            )}
-                          </View>
-                        </View>
-                        <AppText
-                          variant="tab"
-                          tone={selected ? 'teal' : 'soft'}
-                          weight={selected ? '700' : '500'}
-                          numberOfLines={1}
-                        >
-                          {label}
-                        </AppText>
-                      </Touchable>
-                    )
-                  })}
-                </View>
-              </View>
-
-              {/* Color Swatches */}
-              <View style={styles.sectionBlock}>
-                <AppText variant="small" tone="soft" weight="600" style={styles.sectionLabel}>
-                  Color
-                </AppText>
-                <View
-                  style={[styles.swatchCard, { backgroundColor: colors.surface }]}
-                  accessibilityRole="radiogroup"
-                  accessibilityLabel="Avatar color"
-                >
-                  {AVATAR_TONES.map((item) => {
-                    const selected = item === activeTone
-                    const itemPalette = AVATAR_PALETTES[item][scheme]
-                    return (
-                      <Touchable
-                        key={item}
-                        onPress={() => handleSelectTone(item)}
-                        pressedScale={0.92}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected }}
-                        accessibilityLabel={`${AVATAR_PALETTES[item].label} color`}
-                        style={styles.swatchTouch}
-                      >
-                        <View
-                          style={[
-                            styles.swatchOuter,
-                            { borderColor: selected ? itemPalette.swatch : 'transparent' },
-                          ]}
-                        >
-                          <View style={[styles.swatchDot, { backgroundColor: itemPalette.swatch }]}>
-                            {selected && (
-                              <Icon
-                                name="check"
-                                size={14}
-                                color={scheme === 'dark' ? '#000000' : '#ffffff'}
-                              />
-                            )}
-                          </View>
-                        </View>
-                      </Touchable>
-                    )
-                  })}
-                </View>
-              </View>
-
-              {/* Photo Options */}
-              <View style={styles.sectionBlock}>
-                <AppText variant="small" tone="soft" weight="600" style={styles.sectionLabel}>
-                  Photo
-                </AppText>
-                <GroupedCard>
-                  <ListRow
-                    title="Choose Photo"
-                    subtitle="From library"
-                    leading="image"
-                    onPress={() => pickFromSource('library')}
-                  />
-                  <ListRow
-                    title="Take Photo"
-                    subtitle="Use camera"
-                    leading="camera"
-                    onPress={() => pickFromSource('camera')}
-                  />
-                  {hasPhoto && (
-                    <ListRow
-                      title="Remove Photo"
-                      leading="trash"
-                      destructive
-                      trailing={<View />}
-                      onPress={handleRemovePhoto}
-                    />
-                  )}
-                </GroupedCard>
-              </View>
-
-              {sheetError ? <Banner text={sheetError} tone="error" /> : null}
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        <AvatarPresetSection
+          preset={preset}
+          hasPhoto={hasPhoto}
+          initials={initials}
+          tilePalette={tilePalette}
+          onRandomize={handleRollLockedRandom}
+          onSelectPreset={handleSelectPresetTile}
+        />
+        <AvatarToneSection activeTone={activeTone} onSelectTone={handleSelectTone} />
+      </AvatarEditSheet>
     </View>
   )
 }
@@ -593,160 +318,6 @@ const styles = StyleSheet.create({
     right: -1,
     bottom: -1,
     borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-  },
-  sheet: {
-    maxHeight: '88%',
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: space[5],
-    paddingTop: space[2],
-  },
-  grabber: {
-    width: 36,
-    height: 5,
-    borderRadius: 3,
-    alignSelf: 'center',
-    opacity: 0.45,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 40,
-    marginTop: space[1],
-    marginBottom: space[2],
-  },
-  headerSpacer: {
-    width: 56,
-  },
-  headerAction: {
-    width: 56,
-    alignItems: 'flex-end',
-  },
-  sheetScroll: {
-    gap: space[4],
-    paddingBottom: space[3],
-  },
-  previewArea: {
-    alignItems: 'center',
-    gap: space[2],
-    paddingVertical: space[1],
-  },
-  sectionBlock: {
-    gap: space[2],
-  },
-  sectionLabel: {
-    marginHorizontal: space[1],
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: space[1],
-  },
-  randomizeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 2,
-  },
-  nicknameFieldWrap: {
-    position: 'relative',
-    justifyContent: 'center',
-    borderRadius: radius.group,
-    borderWidth: 1,
-  },
-  nicknameField: {
-    minHeight: 48,
-    paddingLeft: space[4],
-    paddingRight: space[8] + space[2],
-    paddingVertical: space[2],
-    fontWeight: '500',
-  },
-  clearNicknameBtn: {
-    position: 'absolute',
-    right: space[3],
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearNicknameBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  presetGridCard: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: space[3],
-    paddingHorizontal: space[3],
-    paddingVertical: space[3],
-    borderRadius: radius.group,
-  },
-  presetTile: {
-    width: '18.8%',
-    alignItems: 'center',
-    gap: 5,
-  },
-  presetRing: {
-    padding: 2,
-    borderRadius: 28,
-    borderWidth: 2,
-  },
-  presetCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  tileMonogram: {
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
-  swatchCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: space[1],
-    paddingHorizontal: space[2],
-    borderRadius: radius.group,
-  },
-  swatchTouch: {
-    width: touchTarget,
-    height: touchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  swatchOuter: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  swatchDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
