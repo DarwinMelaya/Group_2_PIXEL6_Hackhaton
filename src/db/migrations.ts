@@ -32,6 +32,16 @@ const migrations: ((db: SQLiteDatabase) => Promise<void>)[] = [
       );
     `)
   },
+  async (db) => {
+    await db.execAsync(`
+      CREATE TABLE token_usage (
+        source TEXT PRIMARY KEY NOT NULL CHECK (source IN ('gemini', 'local')),
+        requests INTEGER NOT NULL DEFAULT 0,
+        prompt_tokens INTEGER NOT NULL DEFAULT 0,
+        completion_tokens INTEGER NOT NULL DEFAULT 0
+      );
+    `)
+  },
 ]
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {

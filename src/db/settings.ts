@@ -16,7 +16,7 @@ export type ReplyLength = (typeof REPLY_LENGTHS)[number]
 
 export type Settings = { appearance: Appearance; textSize: TextSize; nickname: string; onboarded: boolean; aiMode: AiMode; localReplyLength: ReplyLength; geminiModel: GeminiModel }
 
-export const defaultSettings: Settings = { appearance: 'system', textSize: 'standard', nickname: '', onboarded: false, aiMode: 'local', localReplyLength: 'short', geminiModel: 'gemini-3.8-flash' }
+export const defaultSettings: Settings = { appearance: 'system', textSize: 'standard', nickname: '', onboarded: false, aiMode: 'local', localReplyLength: 'short', geminiModel: 'gemini-3.5-flash-lite' }
 
 export const isAppearance = (value: unknown): value is Appearance => APPEARANCES.includes(value as Appearance)
 export const isTextSize = (value: unknown): value is TextSize => typeof value === 'string' && value in textSizes

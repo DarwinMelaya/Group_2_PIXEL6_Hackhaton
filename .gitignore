@@ -36,6 +36,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# local-only debug screen (reachable at /debug, never shipped)
+/src/app/debug.tsx
+
 # generated native folders
 /ios
 /android

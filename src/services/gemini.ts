@@ -1,7 +1,11 @@
-const TIMEOUT_MS = 20_000
+import { THINKING_LEVELS, type GeminiModel } from '@/data/ai'
+import type { TokenUsage } from '@/db/tokenUsage'
+
+/** Thinking models are slow on a non-streaming call; 20s was tripping on normal replies. */
+const TIMEOUT_MS = 60_000
 
 export class GeminiError extends Error {
-  constructor(message: string, readonly kind: 'auth' | 'quota' | 'network' | 'other') {
+  constructor(message: string, readonly kind: 'auth' | 'quota' | 'network' | 'timeout' | 'other') {
     super(message)
   }
 }
@@ -24,9 +28,22 @@ function mapError(status: number, body: GeminiErrorBody): GeminiError {
   return new GeminiError(apiMessage ?? `Gemini request failed (HTTP ${status}).`, 'other')
 }
 
-export async function generateGemini({ apiKey, model, system, history }: { apiKey: string; model: string; system: string; history: GeminiHistoryMessage[] }): Promise<string> {
+type GeminiUsageBody = { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } }
+
+/**
+ * Thought tokens count against maxOutputTokens, so a tight cap makes the model spend
+ * the whole budget reasoning and return no text at all. Keep this generous and control
+ * answer length through the system prompt instead.
+ */
+const MAX_OUTPUT_TOKENS = 2048
+
+export async function generateGemini({ apiKey, model, system, history }: { apiKey: string; model: string; system: string; history: GeminiHistoryMessage[] }): Promise<{ text: string; usage: TokenUsage }> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  let timedOut = false
+  const timeout = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, TIMEOUT_MS)
   let response: Response
   try {
     response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -35,20 +52,41 @@ export async function generateGemini({ apiKey, model, system, history }: { apiKe
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: history.map((message) => ({ role: message.role === 'assistant' ? 'model' : 'user', parts: [{ text: message.text }] })),
-        generationConfig: { maxOutputTokens: 1024, temperature: 0.4 },
+        generationConfig: {
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          temperature: 0.4,
+          thinkingConfig: { thinkingLevel: THINKING_LEVELS[model as GeminiModel] ?? 'low' },
+        },
       }),
       signal: controller.signal,
     })
-  } catch {
-    throw new GeminiError('Cannot reach Gemini. Check your internet connection.', 'network')
+  } catch (error) {
+    if (timedOut) throw new GeminiError(`Gemini took longer than ${TIMEOUT_MS / 1000}s to answer.`, 'timeout')
+    const detail = error instanceof Error && error.message ? ` (${error.message})` : ''
+    throw new GeminiError(`Cannot reach Gemini. Check your internet connection.${detail}`, 'network')
   } finally {
     clearTimeout(timeout)
   }
-  const body = await response.json().catch(() => ({})) as GeminiErrorBody & { candidates?: { content?: { parts?: { text?: string }[] } }[] }
+  const body = await response.json().catch(() => ({})) as GeminiErrorBody & GeminiUsageBody & {
+    promptFeedback?: { blockReason?: string }
+    candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[]
+  }
   if (!response.ok) throw mapError(response.status, body)
-  const text = (body.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('').trim()
-  if (!text) throw new GeminiError('Gemini returned an empty reply.', 'other')
-  return text
+  const candidate = body.candidates?.[0]
+  const text = (candidate?.content?.parts ?? [])
+    .filter((part) => !part.thought)
+    .map((part) => part.text ?? '')
+    .join('')
+    .trim()
+  if (!text) {
+    const reason = body.promptFeedback?.blockReason ?? candidate?.finishReason
+    throw new GeminiError(reason ? `Gemini returned no answer (${reason}).` : 'Gemini returned an empty reply.', 'other')
+  }
+  const usage: TokenUsage = {
+    promptTokens: body.usageMetadata?.promptTokenCount ?? 0,
+    completionTokens: (body.usageMetadata?.candidatesTokenCount ?? 0) + (body.usageMetadata?.thoughtsTokenCount ?? 0),
+  }
+  return { text, usage }
 }
 
 export async function testGeminiKey(apiKey: string, model: string): Promise<void> {

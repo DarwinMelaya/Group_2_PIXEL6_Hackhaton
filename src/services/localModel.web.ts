@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
+import type { TokenUsage } from '@/db/tokenUsage'
+
 export class LocalModelUnavailableError extends Error {}
 
 export const LOCAL_MODEL = {
@@ -27,6 +29,6 @@ export function useLocalModel() {
   return { ...current, download: noop, cancel: () => {}, remove: noop }
 }
 
-export async function generateLocal(): Promise<string> {
+export async function generateLocal(): Promise<{ text: string; usage: TokenUsage }> {
   throw new LocalModelUnavailableError('The on-device model is not available on web.')
 }

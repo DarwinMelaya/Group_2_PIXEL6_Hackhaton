@@ -4,14 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { TokenUsageModal } from '@/components/TokenUsageModal'
 import { AppText } from '@/components/ui/AppText'
 import { Icon } from '@/components/ui/Icon'
 import { Touchable } from '@/components/ui/Touchable'
-import { addMessage, listMessages, type ChatMessage } from '@/db/chat'
+import { addMessage, clearMessages, listMessages, type ChatMessage } from '@/db/chat'
+import { recordTokenUsage } from '@/db/tokenUsage'
 import { useSettings } from '@/providers/SettingsProvider'
 import { generateReply } from '@/services/assistant'
 import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
+import { confirmAction } from '@/utils/dialogs'
 
 const GREETING: ChatMessage = { id: 0, role: 'assistant', body: 'Kumusta! I’m GabAI. Ask me about first aid or disaster preparedness in English, Tagalog, or Taglish.', createdAt: 0 }
 const SUGGESTIONS = ['Ano ang gagawin kapag may lindol?', 'How do I treat a minor burn?', 'What belongs in an emergency kit?']
@@ -26,6 +29,7 @@ export default function ChatScreen() {
   const [draft, setDraft] = useState('')
   const [thinking, setThinking] = useState(false)
   const [notice, setNotice] = useState('')
+  const [usageOpen, setUsageOpen] = useState(false)
 
   useEffect(() => {
     listMessages(db).then(setMessages).catch(() => setMessages([]))
@@ -42,6 +46,7 @@ export default function ChatScreen() {
       setMessages((current) => [...current, question])
       const reply = await generateReply(text, messages, settings)
       setNotice(reply.notice ?? '')
+      if (reply.usage) await recordTokenUsage(db, reply.usage.source, reply.usage).catch(() => {})
       const answer = await addMessage(db, 'assistant', reply.text)
       setMessages((current) => [...current, answer])
     } finally {
@@ -49,12 +54,32 @@ export default function ChatScreen() {
     }
   }
 
+  const deleteChat = async () => {
+    if (thinking) return
+    const confirmed = await confirmAction({
+      title: 'Delete this chat?',
+      message: 'All messages in this conversation will be removed. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (!confirmed) return
+    await clearMessages(db)
+    setMessages([])
+    setNotice('')
+  }
+
   const data = [GREETING, ...messages]
 
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={insets.top + touchTarget}>
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
-        <Touchable onPress={() => router.push('/chat-settings')} accessibilityLabel="Chat settings" style={styles.gear}>
+        <Touchable onPress={() => setUsageOpen(true)} accessibilityLabel="Token usage" style={styles.topAction}>
+          <Icon name="chart" size={20} color={colors.ink} />
+        </Touchable>
+        <Touchable onPress={deleteChat} accessibilityLabel="Delete chat" style={styles.topAction}>
+          <Icon name="trash" size={20} color={colors.danger} />
+        </Touchable>
+        <Touchable onPress={() => router.push('/chat-settings')} accessibilityLabel="Chat settings" style={styles.topAction}>
           <Icon name="settings" size={20} color={colors.ink} />
         </Touchable>
       </View>
@@ -115,6 +140,7 @@ export default function ChatScreen() {
           <Icon name="send" size={19} color={brand.onPrimary} />
         </Touchable>
       </View>
+      <TokenUsageModal visible={usageOpen} onClose={() => setUsageOpen(false)} />
     </KeyboardAvoidingView>
   )
 }
@@ -122,7 +148,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: space[4] },
-  gear: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
+  topAction: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: space[5], paddingTop: space[2], paddingBottom: space[4], gap: space[3] },
   intro: { alignItems: 'center', marginBottom: space[4] },
   orb: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.primary, marginBottom: space[3] },

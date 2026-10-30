@@ -2,6 +2,8 @@ import { Directory, File, Paths, type DownloadTask } from 'expo-file-system'
 import type { LlamaContext } from 'llama.rn'
 import { useSyncExternalStore } from 'react'
 
+import type { TokenUsage } from '@/db/tokenUsage'
+
 export class LocalModelUnavailableError extends Error {}
 
 export const LOCAL_MODEL = {
@@ -110,7 +112,7 @@ export function useLocalModel() {
 
 type LocalMessage = { role: 'user' | 'assistant'; text: string }
 
-export async function generateLocal({ system, history, nPredict }: { system: string; history: LocalMessage[]; nPredict: number }): Promise<string> {
+export async function generateLocal({ system, history, nPredict }: { system: string; history: LocalMessage[]; nPredict: number }): Promise<{ text: string; usage: TokenUsage }> {
   if (!modelFile.exists) throw new LocalModelUnavailableError('The on-device model is not downloaded.')
   if (!context) {
     try {
@@ -127,5 +129,5 @@ export async function generateLocal({ system, history, nPredict }: { system: str
   })
   const text = result.text.trim()
   if (!text) throw new LocalModelUnavailableError('The on-device model returned an empty reply.')
-  return text
+  return { text, usage: { promptTokens: result.timings.prompt_n, completionTokens: result.timings.predicted_n } }
 }
