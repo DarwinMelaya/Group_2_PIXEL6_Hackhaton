@@ -1,8 +1,8 @@
 import { Image, StyleSheet, View, type ImageSourcePropType } from 'react-native'
 
-const disasterImage: ImageSourcePropType = require('../../assets/1.png')
-const firstAidImage: ImageSourcePropType = require('../../assets/2.png')
-const assistantImage: ImageSourcePropType = require('../../assets/3.png')
+const disasterImage: ImageSourcePropType = require('../../assets/1.webp')
+const firstAidImage: ImageSourcePropType = require('../../assets/2.webp')
+const assistantImage: ImageSourcePropType = require('../../assets/3.webp')
 
 export type OnboardingScene = 'disaster' | 'firstAid' | 'assistant'
 

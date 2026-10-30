@@ -1,3 +1,4 @@
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient'
 import { StatusBar } from 'expo-status-bar'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -14,8 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg'
 
 import { AppText } from '@/components/ui/AppText'
-import { Button } from '@/components/ui/Button'
-import { palette, radius, space, typeRamp } from '@/theme/tokens'
+import { Touchable } from '@/components/ui/Touchable'
+import { brand, palette, radius, space, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
 /** Smooth ~2-second crossfade transition duration for the DRRM background slideshow. */
@@ -43,22 +44,22 @@ type DrmBackgroundSlide = {
 const DRM_SLIDES: readonly DrmBackgroundSlide[] = [
   {
     id: 'typhoon',
-    source: require('../../assets/welcome/drm-1-typhoon.jpg'),
+    source: require('../../assets/welcome/drm-1-typhoon.webp'),
     accessibilityLabel: 'Satellite view of a typhoon swirling over Marinduque and Luzon in the Philippines',
   },
   {
     id: 'coastal-rescue',
-    source: require('../../assets/welcome/drm-2-coastal-rescue.jpg'),
+    source: require('../../assets/welcome/drm-2-coastal-rescue.webp'),
     accessibilityLabel: 'Philippine Coast Guard search and rescue boat responding across coastal waters',
   },
   {
     id: 'search-rescue',
-    source: require('../../assets/welcome/drm-3-search-rescue.jpg'),
+    source: require('../../assets/welcome/drm-3-search-rescue.webp'),
     accessibilityLabel: 'Philippine disaster response rescuers operating an emergency rescue stretcher',
   },
   {
     id: 'first-aid',
-    source: require('../../assets/welcome/drm-4-first-aid.jpg'),
+    source: require('../../assets/welcome/drm-4-first-aid.webp'),
     accessibilityLabel: 'Barangay health responders practicing hands-on CPR and emergency first aid',
   },
 ]
@@ -274,7 +275,7 @@ export function WelcomeShowcase({ onGetStarted }: WelcomeShowcaseProps) {
       >
         <View style={styles.heroBlock}>
           <Image
-            source={require('../../assets/MorionLogo.png')}
+            source={require('../../assets/MorionLogo.webp')}
             resizeMode="contain"
             accessibilityIgnoresInvertColors
             accessibilityLabel="Morion Logo"
@@ -314,7 +315,16 @@ export function WelcomeShowcase({ onGetStarted }: WelcomeShowcaseProps) {
           </AppText>
 
           <View style={styles.actionWrap}>
-            <Button label="Get started" onPress={onGetStarted} style={styles.ctaButton} />
+            <Touchable onPress={onGetStarted} accessibilityRole="button" style={styles.ctaButton}>
+              <ExpoLinearGradient
+                colors={['#ff922b', brand.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaGradient}
+              >
+                <AppText variant="bodyStrong" align="center" style={{ color: brand.onPrimary }}>Get started</AppText>
+              </ExpoLinearGradient>
+            </Touchable>
           </View>
         </View>
       </View>
@@ -385,7 +395,16 @@ const styles = StyleSheet.create({
     marginTop: space[8],
   },
   ctaButton: {
+    flex: 1,
     minHeight: 50,
     borderRadius: radius.pill,
+    overflow: 'hidden',
+  },
+  ctaGradient: {
+    flex: 1,
+    minHeight: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: space[4],
   },
 })
