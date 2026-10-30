@@ -14,6 +14,9 @@ export type AiMode = (typeof AI_MODES)[number]
 export const REPLY_LENGTHS = ['short', 'detailed'] as const
 export type ReplyLength = (typeof REPLY_LENGTHS)[number]
 
+export const VOICE_LANGUAGES = ['fil-PH', 'en-US'] as const
+export type VoiceLanguage = (typeof VOICE_LANGUAGES)[number]
+
 export const AVATAR_TONES = ['teal', 'sky', 'blue', 'violet', 'rose', 'amber'] as const
 export type AvatarTone = (typeof AVATAR_TONES)[number]
 
@@ -45,6 +48,8 @@ export type Settings = {
   geminiModel: GeminiModelChoice
   backendUrl: string
   backendModel: string
+  voiceReplies: boolean
+  voiceLanguage: VoiceLanguage
 }
 
 export const defaultSettings: Settings = {
@@ -60,12 +65,15 @@ export const defaultSettings: Settings = {
   geminiModel: 'auto',
   backendUrl: '',
   backendModel: '',
+  voiceReplies: false,
+  voiceLanguage: 'fil-PH',
 }
 
 export const isAppearance = (value: unknown): value is Appearance => APPEARANCES.includes(value as Appearance)
 export const isTextSize = (value: unknown): value is TextSize => typeof value === 'string' && value in textSizes
 export const isAiMode = (value: unknown): value is AiMode => AI_MODES.includes(value as AiMode)
 export const isReplyLength = (value: unknown): value is ReplyLength => REPLY_LENGTHS.includes(value as ReplyLength)
+export const isVoiceLanguage = (value: unknown): value is VoiceLanguage => VOICE_LANGUAGES.includes(value as VoiceLanguage)
 export const isAvatarTone = (value: unknown): value is AvatarTone => AVATAR_TONES.includes(value as AvatarTone)
 export const isIllustratedAvatar = (value: unknown): value is IllustratedAvatar =>
   ILLUSTRATED_AVATARS.includes(value as IllustratedAvatar)
@@ -92,6 +100,8 @@ export async function readSettings(db: SQLiteDatabase): Promise<Settings> {
     geminiModel: isGeminiModelChoice(stored.geminiModel) ? stored.geminiModel : defaultSettings.geminiModel,
     backendUrl: typeof stored.backendUrl === 'string' ? stored.backendUrl.trim() : '',
     backendModel: typeof stored.backendModel === 'string' ? stored.backendModel.trim() : '',
+    voiceReplies: stored.voiceReplies === 'true',
+    voiceLanguage: isVoiceLanguage(stored.voiceLanguage) ? stored.voiceLanguage : defaultSettings.voiceLanguage,
   }
 }
 

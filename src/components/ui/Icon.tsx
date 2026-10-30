@@ -8,7 +8,7 @@ export type IconName =
   | 'sun' | 'moon' | 'system' | 'send' | 'arrowLeft' | 'check' | 'profile' | 'heart' | 'settings'
   | 'download' | 'restore' | 'trash' | 'camera' | 'image' | 'close' | 'calendar' | 'chevronDown'
   | 'cloud' | 'rain' | 'wind' | 'pin' | 'eye' | 'chart' | 'paperclip'
-  | 'shuffle' | 'sparkles' | 'edit'
+  | 'shuffle' | 'sparkles' | 'edit' | 'mic' | 'stop' | 'speaker'
 
 /** Stroke icon set ported 1:1 from the web prototype (24×24 grid, 1.8 stroke). */
 const paths: Record<IconName, ReactNode> = {
@@ -57,6 +57,9 @@ const paths: Record<IconName, ReactNode> = {
   shuffle: <><Path d="M16 3h5v5"/><Path d="M4 20 21 3"/><Path d="M21 16v5h-5"/><Path d="m15 15 6 6"/><Path d="M4 4l5 5"/></>,
   sparkles: <><Path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/><Path d="M19 3v4M17 5h4M5 17v3M3.5 18.5h3"/></>,
   edit: <><Path d="M12 20h9"/><Path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></>,
+  mic: <><Rect x="9" y="1" width="6" height="13" rx="3"/><Path d="M19 10v2a7 7 0 0 1-14 0v-2"/><Path d="M12 19v4M8 23h8"/></>,
+  stop: <Rect x="7" y="7" width="10" height="10" rx="2.5"/>,
+  speaker: <><Path d="M11 5 6 9H2v6h4l5 4V5Z"/><Path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></>,
 }
 
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color: ColorValue }) {

@@ -1,8 +1,7 @@
 import { BARANGAYS } from './barangays'
 import { MUNICIPALITIES, type Municipality } from './profile'
 
-/** `pending` rows are placeholders with no verified number yet — never dialable. */
-export type EmergencyContact = { label: string; number: string; pending?: boolean }
+export type EmergencyContact = { label: string; number: string }
 
 export const nationalContacts: EmergencyContact[] = [
   { label: 'National emergency (911)', number: '911' },
@@ -60,19 +59,8 @@ export const municipalContacts: Record<Municipality, EmergencyContact[]> = {
  */
 export const barangayContacts: Partial<Record<Municipality, Record<string, EmergencyContact[]>>> = {}
 
-/**
- * Stand-in row for a barangay with no confirmed hotline, so the section shows the barangay
- * GabAI matched instead of nothing. Carries no number at all: a placeholder that looks like a
- * real number would get dialled in an emergency and fail silently.
- */
-export const barangayPlaceholder = (barangay: string): EmergencyContact => ({
-  label: `Brgy. ${barangay} BDRRMC`,
-  number: 'Number pending MDRRMO verification',
-  pending: true,
-})
-
 export const getLocalContacts = (municipality: Municipality, barangay?: string): EmergencyContact[] => [
-  ...(barangay ? barangayContacts[municipality]?.[barangay] ?? [barangayPlaceholder(barangay)] : []),
+  ...(barangay ? barangayContacts[municipality]?.[barangay] ?? [] : []),
   ...municipalContacts[municipality],
 ]
 

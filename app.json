@@ -55,7 +55,15 @@
           "locationWhenInUsePermission": "GabAI uses your location to show emergency hotlines for the barangay you are in."
         }
       ],
-      "llama.rn"
+      "llama.rn",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "GabAI uses the microphone so you can talk to the assistant.",
+          "speechRecognitionPermission": "GabAI transcribes what you say into a chat message.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox", "com.google.android.as"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

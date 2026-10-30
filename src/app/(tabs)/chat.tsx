@@ -1,7 +1,9 @@
+import * as Haptics from 'expo-haptics'
+import { useSpeechRecognitionEvent } from 'expo-speech-recognition'
 import { router, useFocusEffect } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, FlatList, Image, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
+import { AccessibilityInfo, ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { TokenUsageModal } from '@/components/TokenUsageModal'
@@ -15,6 +17,7 @@ import { recordTokenUsage } from '@/db/tokenUsage'
 import { useSettings } from '@/providers/SettingsProvider'
 import { generateReply, type AssistantContext } from '@/services/assistant'
 import { captureAttachment, takeStagedAttachment, AttachmentError, type Attachment, type AttachmentSource } from '@/services/attachment'
+import { cancelVoiceInput, ensureVoicePermissions, onDeviceVoiceAvailable, speak, startVoiceInput, stopSpeaking, stopVoiceInput, voiceInputAvailable } from '@/services/voice'
 import { deletePhotoFile } from '@/storage/photos'
 import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
@@ -35,6 +38,16 @@ export default function ChatScreen() {
   const [thinking, setThinking] = useState(false)
   const [notice, setNotice] = useState('')
   const [usageOpen, setUsageOpen] = useState(false)
+  // 'starting' covers the gap between tapping the mic and the recognizer's
+  // 'start' event (permission prompt, Android offline-pack download) so the
+  // user gets immediate feedback that capture is being set up.
+  const [voiceState, setVoiceState] = useState<'idle' | 'starting' | 'listening'>('idle')
+  const [speakingId, setSpeakingId] = useState<number | null>(null)
+  const [micAvailable] = useState(() => voiceInputAvailable())
+  // Text already in the composer when dictation started — transcripts append to it.
+  const voiceBase = useRef('')
+  // Which recognizer the current session is using; a failed 'net' session retries on-device.
+  const voiceEngine = useRef<'net' | 'device' | null>(null)
 
   useEffect(() => {
     listMessages(db).then(setMessages).catch(() => setMessages([]))
@@ -45,6 +58,93 @@ export default function ChatScreen() {
     const staged = takeStagedAttachment()
     if (staged) setAttachment(staged)
   }, []))
+
+  // Drop dictation and any spoken reply when the user leaves the tab.
+  useFocusEffect(useCallback(() => () => {
+    cancelVoiceInput()
+    stopSpeaking()
+    setSpeakingId(null)
+    setVoiceState('idle')
+  }, []))
+
+  useSpeechRecognitionEvent('start', () => {
+    setVoiceState('listening')
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
+    AccessibilityInfo.announceForAccessibility('Microphone on — listening')
+  })
+  useSpeechRecognitionEvent('end', () => {
+    // Errors null the engine first, so this only acknowledges a clean stop.
+    if (voiceEngine.current) {
+      void Haptics.selectionAsync().catch(() => {})
+      AccessibilityInfo.announceForAccessibility('Voice input stopped')
+    }
+    voiceEngine.current = null
+    setVoiceState('idle')
+  })
+  useSpeechRecognitionEvent('result', (event) => {
+    const transcript = event.results[0]?.transcript ?? ''
+    const base = voiceBase.current
+    setDraft(base ? `${base} ${transcript}` : transcript)
+  })
+  useSpeechRecognitionEvent('error', (event) => {
+    // A network recognizer that can't reach its service retries on-device so
+    // voice input still works without internet.
+    const retryable = event.error === 'network' || event.error === 'service-not-allowed'
+    if (retryable && voiceEngine.current === 'net' && onDeviceVoiceAvailable()) {
+      voiceEngine.current = 'device'
+      setNotice('No internet — using on-device voice typing.')
+      void startVoiceInput({ lang: settings.voiceLanguage, onDevice: true })
+      return
+    }
+    voiceEngine.current = null
+    setVoiceState('idle')
+    if (event.error === 'aborted' || event.error === 'no-speech' || event.error === 'speech-timeout') return
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {})
+    setNotice('Voice input failed. Check the microphone and try again.')
+  })
+
+  // Stopping an in-flight ('starting') session cancels it outright; stopping a
+  // live one ends it gracefully so the final transcript lands in the draft.
+  const stopVoice = () => {
+    if (voiceState === 'starting') {
+      cancelVoiceInput()
+      setVoiceState('idle')
+    } else {
+      stopVoiceInput()
+    }
+  }
+
+  const toggleMic = async () => {
+    if (voiceState !== 'idle') {
+      stopVoice()
+      return
+    }
+    setNotice('')
+    if (!(await ensureVoicePermissions())) {
+      setNotice('Voice input needs microphone and speech permission. Allow them in system settings, then try again.')
+      return
+    }
+    voiceBase.current = draft.trim()
+    voiceEngine.current = settings.aiMode === 'local' ? 'device' : 'net'
+    setVoiceState('starting')
+    try {
+      await startVoiceInput({ lang: settings.voiceLanguage, onDevice: voiceEngine.current === 'device' })
+    } catch {
+      voiceEngine.current = null
+      setVoiceState('idle')
+      setNotice('Voice input failed to start. Try again.')
+    }
+  }
+
+  const toggleSpeak = (item: ChatMessage) => {
+    if (speakingId === item.id) {
+      setSpeakingId(null)
+      stopSpeaking()
+      return
+    }
+    setSpeakingId(item.id)
+    speak(item.body, settings.voiceLanguage, () => setSpeakingId((current) => (current === item.id ? null : current)))
+  }
 
   const attach = async (source: AttachmentSource) => {
     setNotice('')
@@ -73,6 +173,7 @@ export default function ChatScreen() {
     const text = draft.trim()
     const photo = attachment ?? undefined
     if ((!text && !photo) || thinking) return
+    if (voiceState !== 'idle') cancelVoiceInput()
     setDraft('')
     setAttachment(null)
     setNotice('')
@@ -112,6 +213,10 @@ export default function ChatScreen() {
       if (reply.usage) await recordTokenUsage(db, reply.usage.source, reply.usage).catch(() => {})
       const answer = await addMessage(db, 'assistant', reply.text)
       setMessages((current) => [...current, answer])
+      if (settings.voiceReplies) {
+        setSpeakingId(answer.id)
+        speak(reply.text, settings.voiceLanguage, () => setSpeakingId((current) => (current === answer.id ? null : current)))
+      }
     } catch {
       // Keep the typed text so a failed send does not eat the user's message.
       setDraft(text)
@@ -182,6 +287,16 @@ export default function ChatScreen() {
                 />
               ) : null}
               <AppText style={mine ? { color: brand.onPrimary } : undefined}>{item.body}</AppText>
+              {!mine ? (
+                <Touchable
+                  onPress={() => toggleSpeak(item)}
+                  accessibilityLabel={speakingId === item.id ? 'Stop reading reply' : 'Read reply aloud'}
+                  hitSlop={8}
+                  style={styles.speakButton}
+                >
+                  <Icon name="speaker" size={15} color={speakingId === item.id ? colors.teal : colors.inkSoft} />
+                </Touchable>
+              ) : null}
             </View>
           )
         }}
@@ -211,15 +326,15 @@ export default function ChatScreen() {
           </Touchable>
         </View>
       )}
-      <View style={[styles.composer, { backgroundColor: colors.surface, borderColor: colors.line }]}>
+      <View style={[styles.composer, { backgroundColor: voiceState !== 'idle' ? colors.dangerSoft : colors.surface, borderColor: voiceState !== 'idle' ? colors.danger : colors.line }]}>
         <Touchable onPress={pickAttachment} disabled={thinking} accessibilityLabel="Attach a photo" style={styles.attachAction}>
           <Icon name="paperclip" size={20} color={thinking ? colors.inkSoft : colors.ink} />
         </Touchable>
         <TextInput
           value={draft}
           onChangeText={setDraft}
-          placeholder={attachment ? 'Add context for the photo…' : 'Ask GabAI…'}
-          placeholderTextColor={colors.inkSoft}
+          placeholder={voiceState === 'listening' ? 'Listening — speak now…' : attachment ? 'Add context for the photo…' : 'Ask GabAI…'}
+          placeholderTextColor={voiceState === 'listening' ? colors.danger : colors.inkSoft}
           accessibilityLabel="Message GabAI"
           returnKeyType="send"
           onSubmitEditing={send}
@@ -227,6 +342,21 @@ export default function ChatScreen() {
           maxLength={500}
           style={[styles.input, { color: colors.ink, fontSize: typeRamp.body.fontSize * scale }]}
         />
+        {micAvailable && (
+          <Touchable
+            onPress={toggleMic}
+            disabled={thinking}
+            accessibilityLabel={voiceState === 'listening' ? 'Stop voice input' : voiceState === 'starting' ? 'Starting microphone' : 'Voice input'}
+            accessibilityState={{ selected: voiceState !== 'idle', busy: voiceState === 'starting' }}
+            style={[styles.mic, voiceState === 'listening' && { backgroundColor: brand.emergency }, voiceState === 'starting' && { backgroundColor: colors.dangerSoft }]}
+          >
+            {voiceState === 'starting' ? (
+              <ActivityIndicator size="small" color={colors.danger} />
+            ) : (
+              <Icon name={voiceState === 'listening' ? 'stop' : 'mic'} size={19} color={voiceState === 'listening' ? brand.onPrimary : thinking ? colors.inkSoft : colors.ink} />
+            )}
+          </Touchable>
+        )}
         <Touchable onPress={send} disabled={!canSend} accessibilityLabel="Send message" style={[styles.send, { opacity: canSend ? 1 : 0.5 }]}>
           <Icon name="send" size={19} color={brand.onPrimary} />
         </Touchable>
@@ -257,5 +387,7 @@ const styles = StyleSheet.create({
   notice: { marginHorizontal: space[5], marginBottom: space[2] },
   composer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: space[4], marginBottom: space[3], paddingLeft: space[1], paddingRight: 6, minHeight: 56, borderWidth: 1, borderRadius: 15 },
   input: { flex: 1, minWidth: 0, paddingVertical: space[2] },
+  mic: { width: touchTarget, height: touchTarget, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  speakButton: { alignSelf: 'flex-end', marginTop: space[1], padding: 2 },
   send: { width: touchTarget, height: touchTarget, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.primary },
 })

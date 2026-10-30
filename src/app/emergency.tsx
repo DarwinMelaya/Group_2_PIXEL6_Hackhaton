@@ -49,18 +49,6 @@ function lookupNote(lookup: BarangayLookup): string | null {
 
 function ContactRow({ contact }: { contact: EmergencyContact }) {
   const { colors } = useTheme()
-  // Placeholders are plain views: nothing to dial, so nothing that can look tappable.
-  if (contact.pending) {
-    return (
-      <View style={[styles.row, styles.pendingRow, { backgroundColor: colors.surface, borderColor: colors.line }]}>
-        <View style={styles.flex}>
-          <AppText weight="600" tone="soft">{contact.label}</AppText>
-          <AppText variant="caption" tone="soft" style={styles.number}>{contact.number}</AppText>
-        </View>
-        <Icon name="pin" size={20} color={colors.inkSoft} />
-      </View>
-    )
-  }
   return (
     <Touchable
       onPress={() => call(contact)}
@@ -197,7 +185,6 @@ const styles = StyleSheet.create({
   group: { gap: space[3] },
   groupTitle: { marginHorizontal: space[1] },
   row: { flexDirection: 'row', alignItems: 'center', padding: space[3], paddingLeft: space[4], borderRadius: radius.group, borderWidth: 1 },
-  pendingRow: { borderStyle: 'dashed', paddingRight: space[4] },
   number: { marginTop: 3 },
   callCircle: { width: touchTarget, height: touchTarget, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.emergency },
 })
