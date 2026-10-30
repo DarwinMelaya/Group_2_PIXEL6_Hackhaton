@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite'
 import { isGeminiModelChoice, type GeminiModelChoice } from '@/data/ai'
 import { textSizes, type TextSize } from '@/theme/tokens'
 
-export const APPEARANCES = ['system', 'light', 'dark'] as const
+export const APPEARANCES = ['light', 'dark'] as const
 export type Appearance = (typeof APPEARANCES)[number]
 
 export const NICKNAME_MAX_LENGTH = 40
@@ -16,7 +16,7 @@ export type ReplyLength = (typeof REPLY_LENGTHS)[number]
 
 export type Settings = { appearance: Appearance; textSize: TextSize; nickname: string; onboarded: boolean; aiMode: AiMode; localReplyLength: ReplyLength; geminiModel: GeminiModelChoice; backendUrl: string; backendModel: string }
 
-export const defaultSettings: Settings = { appearance: 'system', textSize: 'standard', nickname: '', onboarded: false, aiMode: 'local', localReplyLength: 'short', geminiModel: 'auto', backendUrl: '', backendModel: '' }
+export const defaultSettings: Settings = { appearance: 'light', textSize: 'standard', nickname: '', onboarded: false, aiMode: 'local', localReplyLength: 'short', geminiModel: 'auto', backendUrl: '', backendModel: '' }
 
 export const isAppearance = (value: unknown): value is Appearance => APPEARANCES.includes(value as Appearance)
 export const isTextSize = (value: unknown): value is TextSize => typeof value === 'string' && value in textSizes

@@ -110,14 +110,14 @@ export default function CaptureScreen() {
       <BackButton onPress={() => (router.canGoBack() ? router.back() : router.navigate('/'))} />
       <PageHeader title="Capture an image" subtitle="Take a clear photo from a safe distance." />
 
-      <View style={styles.viewfinder}>
+      <View style={[styles.viewfinder, { backgroundColor: colors.surface }]}>
         {pending ? (
           <Image source={{ uri: pending.uri }} style={styles.preview} resizeMode="contain" accessibilityLabel="Your captured photo" />
         ) : (
           <View style={styles.placeholder}>
-            <View style={styles.placeholderIcon}><Icon name="camera" size={38} color="#94dfce" /></View>
-            <AppText variant="bodyStrong" style={styles.light}>Ready when you are</AppText>
-            <AppText variant="caption" align="center" style={styles.lightSoft}>Open the camera or choose a photo.</AppText>
+            <View style={[styles.placeholderIcon, { backgroundColor: colors.tealSoft }]}><Icon name="camera" size={32} color={colors.teal} /></View>
+            <AppText variant="bodyStrong">Ready when you are</AppText>
+            <AppText variant="caption" align="center" tone="soft">Open the camera or choose a photo.</AppText>
           </View>
         )}
       </View>
@@ -169,12 +169,10 @@ export default function CaptureScreen() {
 }
 
 const styles = StyleSheet.create({
-  viewfinder: { width: '100%', aspectRatio: 4 / 5, maxHeight: 360, borderRadius: radius.group, overflow: 'hidden', backgroundColor: '#151a1c', borderWidth: 1, borderColor: '#343b3d', alignItems: 'center', justifyContent: 'center' },
+  viewfinder: { width: '100%', aspectRatio: 4 / 5, maxHeight: 360, borderRadius: radius.group, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   preview: { ...StyleSheet.absoluteFill },
   placeholder: { alignItems: 'center', padding: space[6], gap: space[2] },
-  placeholderIcon: { width: 76, height: 76, borderRadius: radius.lg, borderWidth: 1, borderColor: '#4b5b58', backgroundColor: '#21352f', alignItems: 'center', justifyContent: 'center', marginBottom: space[2] },
-  light: { color: '#ffffff' },
-  lightSoft: { color: '#b8c4c1' },
+  placeholderIcon: { width: 64, height: 64, borderRadius: radius.group, alignItems: 'center', justifyContent: 'center', marginBottom: space[3] },
   ready: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2], marginTop: space[4] },
   actions: { flexDirection: 'row', gap: space[3], marginTop: space[4] },
   section: { marginTop: space[6] },

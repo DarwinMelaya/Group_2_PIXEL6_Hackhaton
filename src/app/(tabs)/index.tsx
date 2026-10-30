@@ -26,7 +26,7 @@ export default function HomeScreen() {
       <View style={[styles.hero, { backgroundColor: colors.background }]}>
         <View style={styles.scene} pointerEvents="none"><MarinduqueScene scheme={scheme} /></View>
         <View style={styles.welcome}>
-          <AppText variant="eyebrow" tone="soft">{settings.nickname ? `Magandang araw, ${settings.nickname}` : 'Magandang araw'}</AppText>
+          <AppText variant="caption" tone="soft">{settings.nickname ? `Magandang araw, ${settings.nickname}` : 'Magandang araw'}</AppText>
           <AppText variant="pageTitle" accessibilityRole="header">Stay ready.</AppText>
           <AppText variant="caption" tone="soft" style={styles.subcopy}>Your everyday safety companion.</AppText>
         </View>
@@ -44,7 +44,7 @@ export default function HomeScreen() {
               style={[styles.disasterCard, { backgroundColor: colors.surface }]}
             >
               <IconTile icon={guide.icon} tone={guide.tone} size="xl" />
-              <AppText variant="caption" weight="600" numberOfLines={1} align="center">{guide.name}</AppText>
+              <AppText variant="small" weight="500" align="center">{guide.name}</AppText>
             </Touchable>
           ))}
         </View>
@@ -60,10 +60,10 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   hero: { position: 'relative', marginTop: -space[6], marginHorizontal: -space[5], paddingTop: space[5], paddingHorizontal: space[5], paddingBottom: space[5] },
-  scene: { position: 'absolute', right: 0, top: space[2], width: '68%', height: 120 },
-  welcome: { minHeight: 100, marginBottom: space[3], paddingTop: space[1] },
+  scene: { position: 'absolute', right: 0, top: space[2], width: '55%', height: 120, opacity: 0.28 },
+  welcome: { minHeight: 110, marginBottom: space[4], paddingTop: space[1], gap: space[1] },
   subcopy: { marginTop: space[1] },
-  section: { marginTop: space[5] },
+  section: { marginTop: space[6] },
   disasterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space[2] },
-  disasterCard: { width: '31.5%', minHeight: 120, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', gap: space[2], paddingHorizontal: space[1], paddingVertical: space[3] },
+  disasterCard: { width: '31.5%', minHeight: 112, borderRadius: radius.group, alignItems: 'center', justifyContent: 'center', gap: space[3], paddingHorizontal: space[2], paddingVertical: space[4] },
 })

@@ -23,9 +23,12 @@ export function parseBackup(raw: string): Backup {
     throw new BackupError('This file is not valid JSON. Choose a GabAI backup.')
   }
   const candidate = data as Partial<Backup> | null
+  // Older backups used the device theme; restore those with the light default.
+  const savedAppearance: unknown = candidate?.settings?.appearance
+  const appearance = savedAppearance === 'system' ? 'light' : savedAppearance
   if (!candidate || candidate.app !== 'GabAI' || candidate.version !== 1 || !candidate.settings || !candidate.profile ||
       typeof candidate.profile !== 'object' || Array.isArray(candidate.profile) ||
-      !isAppearance(candidate.settings.appearance) || !isTextSize(candidate.settings.textSize)) {
+      !isAppearance(appearance) || !isTextSize(candidate.settings.textSize)) {
     throw new BackupError('Choose a valid GabAI backup file (version 1).')
   }
   const profile: ProfileInfo = {}
@@ -35,7 +38,7 @@ export function parseBackup(raw: string): Backup {
     }
     profile[key] = value
   }
-  const settings: BackupSettings = { appearance: candidate.settings.appearance, textSize: candidate.settings.textSize }
+  const settings: BackupSettings = { appearance, textSize: candidate.settings.textSize }
   if (typeof candidate.settings.nickname === 'string') {
     settings.nickname = candidate.settings.nickname.trim().slice(0, NICKNAME_MAX_LENGTH)
   }

@@ -36,7 +36,7 @@ export function SectionHeader({ title, caption, actionLabel, onAction }: { title
 export function TextButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Touchable onPress={onPress} style={styles.textButton} hitSlop={8}>
-      <AppText variant="caption" tone="teal" weight="600">{label}</AppText>
+      <AppText variant="caption" tone="teal">{label}</AppText>
     </Touchable>
   )
 }
@@ -88,8 +88,8 @@ export function SettingsLabel({ children }: { children: string }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
-  pageHead: { marginBottom: space[5] },
-  subtitle: { marginTop: space[1] },
+  pageHead: { marginBottom: space[6] },
+  subtitle: { marginTop: space[2] },
   sectionHead: { marginBottom: space[3] },
   caption: { marginTop: 2 },
   textButton: { minHeight: touchTarget, justifyContent: 'center' },

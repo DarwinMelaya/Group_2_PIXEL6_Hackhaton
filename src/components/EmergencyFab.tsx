@@ -43,9 +43,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: brand.emergency,
     shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
 })

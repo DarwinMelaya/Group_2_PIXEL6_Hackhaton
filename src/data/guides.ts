@@ -117,31 +117,66 @@ export const guides: Guide[] = [
     ],
   },
   {
-    id: 'choking',
-    kind: 'aid',
-    name: 'Choking',
-    detail: 'Clear the airway',
-    icon: 'choking',
-    tone: 'teal',
-    keywords: ['choking', 'nabulunan', 'airway', 'heimlich', 'nabilaukan', 'nasamid', 'hindi makahinga'],
-    phases: [
-      { label: 'Immediate care', steps: ['Ask "Are you choking?" and encourage them to cough if they can.', 'Give up to 5 firm back blows between the shoulder blades.', 'Then give up to 5 abdominal thrusts; alternate until the object comes out.'] },
-      { label: 'Warning signs', steps: ['Unable to speak, cough, or breathe.', 'Lips or face turning blue.', 'Loss of consciousness: call 911 and start CPR if trained.'] },
-      { label: 'Avoid', steps: ['Do not do blind finger sweeps in the mouth.', 'Do not give abdominal thrusts to infants under 1 year; use back blows and chest thrusts.', 'Do not give food or water until breathing is normal.'] },
-    ],
-  },
-  {
     id: 'fractures',
     kind: 'aid',
     name: 'Fractures',
     detail: 'Stabilize safely',
     icon: 'fracture',
     tone: 'indigo',
-    keywords: ['fracture', 'broken bone', 'bali', 'nabalian', 'sprain', 'nabali', 'pilay', 'napilayan'],
+    keywords: ['fracture', 'broken bone', 'bali', 'nabalian', 'nabali'],
     phases: [
       { label: 'Immediate care', steps: ['Keep the injured part still, in the position you found it.', 'Support it with padding or a splint above and below the injury.', 'Apply a cold pack wrapped in cloth to reduce swelling.'] },
       { label: 'Warning signs', steps: ['Bone visible through the skin, or severe deformity.', 'Numbness, tingling, or a cold, pale limb below the injury.', 'Suspected head, neck, or back injury: do not move the person.'] },
       { label: 'Avoid', steps: ['Do not try to straighten or push a bone back in.', 'Do not let the person walk on a suspected leg fracture.', 'Do not put ice directly on the skin.'] },
+    ],
+  },
+
+  // Draft additions: references checked 2026-10-30; local medical/DRRM review required before release.
+  // https://www.nhs.uk/conditions/sprains-and-strains/
+  {
+    id: 'sprains-strains',
+    kind: 'aid',
+    name: 'Sprains & strains',
+    detail: 'Support injuries from slips and falls',
+    icon: 'fracture',
+    tone: 'teal',
+    keywords: ['sprain', 'sprains', 'strain', 'strains', 'twisted ankle', 'pulled muscle', 'pilay', 'napilayan', 'natapilok'],
+    phases: [
+      { label: 'Immediate care', steps: ['For the first 2 to 3 days, protect the injury with a support and rest from activities that hurt; avoid putting weight on it.', 'Use a cold pack wrapped in cloth for up to 20 minutes every 2 to 3 hours.', 'Support with a bandage during the day and raise the injured area on a pillow.'] },
+      { label: 'Warning signs', steps: ['Get urgent medical care for severe or worsening pain, swelling, or inability to walk more than a few steps.', 'A cracking sound, changed shape, numbness, or cold, blue or grey skin may mean a fracture: seek emergency care.'] },
+      { label: 'Avoid', steps: ['Do not put ice directly on skin.', 'Avoid heat packs, hot baths, alcohol, and massage for the first couple of days.', 'Do not force painful movement. Resume gentle movement when pain allows.'] },
+    ],
+  },
+  // https://www.redcross.org/take-a-class/cpr/performing-cpr/cpr-steps
+  // https://guidelines.redcross.org/guidelines-database/cpr-techniques-and-sequence/
+  {
+    id: 'cpr-cardiac-arrest',
+    kind: 'aid',
+    name: 'CPR & cardiac arrest',
+    detail: 'Adult CPR and AED emergency steps',
+    icon: 'heart',
+    tone: 'rose',
+    keywords: ['cpr', 'cardiac arrest', 'resuscitation', 'aed', 'unresponsive', 'not breathing', 'walang malay', 'hindi humihinga', 'tumigil ang puso'],
+    phases: [
+      { label: 'Recognize and call', steps: ['Make sure the area is safe. Check response and breathing for no more than 10 seconds.', 'For an adult who is unresponsive and not breathing normally or only gasping, call 911 on speaker and send someone for an AED. Begin CPR immediately.', 'These compression instructions are for adults. For a child or infant, follow age-specific CPR training and dispatcher instructions.'] },
+      { label: 'Immediate care', steps: ['Lay the adult on their back on a firm, flat surface. Put both hands at the center of the chest, with straight arms.', 'Press 5 to 6 cm deep at 100 to 120 compressions per minute, letting the chest fully rise after each push.', 'If trained and able, alternate 30 compressions with 2 breaths lasting about 1 second each, enough to raise the chest. Otherwise, keep giving compressions and follow the dispatcher.', 'Use an AED as soon as available and follow its prompts. Continue until normal breathing returns, rescuers take over, you cannot continue, or the scene becomes unsafe.'] },
+      { label: 'Avoid', steps: ['Do not mistake gasping for normal breathing or delay CPR.', 'Keep pauses brief. Nobody should touch the person during AED analysis or shock.'] },
+    ],
+  },
+  // https://guidelines.redcross.org/guidelines-database/drowning-process-resuscitation/
+  // https://www.moh.gov.sa/en/awarenessplateform/firstaid/pages/drowning.aspx
+  {
+    id: 'drowning',
+    kind: 'aid',
+    name: 'Drowning',
+    detail: 'Safe rescue and breathing support after floods',
+    icon: 'flood',
+    tone: 'blue',
+    keywords: ['drowning', 'drowned', 'near drowning', 'nalulunod', 'nalunod', 'pagkalunod', 'water rescue'],
+    phases: [
+      { label: 'Safe rescue', steps: ['Call 911 and alert rescuers. Reach with a pole or throw flotation from a safe place; do not enter dangerous water.', 'Once safely out, check response and normal breathing for no more than 10 seconds. Send someone for an AED.'] },
+      { label: 'Immediate care', steps: ['If unresponsive and not breathing normally, trained rescuers should open the airway and give 2 initial rescue breaths, then cycles of 30 compressions and 2 breaths. Rescue breaths are especially important after drowning.', 'For an adult, press the center of the chest 5 to 6 cm at 100 to 120 pushes per minute. For children or infants, use age-specific CPR training and dispatcher instructions.', 'If unable to give breaths, start compressions and follow the dispatcher. Use an AED on dry ground after drying the chest; follow its prompts.', 'If unresponsive but breathing normally, place on their side and monitor breathing. Keep warm and get medical assessment even if they seem to recover.'] },
+      { label: 'Avoid', steps: ['Do not try to drain water by hanging the person upside down or pressing their abdomen; this delays CPR.', 'Do not put yourself at risk in floodwater or delay CPR to fetch equipment.'] },
     ],
   },
 ]

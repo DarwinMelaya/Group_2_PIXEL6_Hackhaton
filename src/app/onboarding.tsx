@@ -1,13 +1,12 @@
 import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native'
 
 import { ProfileFieldInput } from '@/components/ProfileFieldInput'
 import { AppText } from '@/components/ui/AppText'
 import { Button } from '@/components/ui/Button'
 import { GroupedCard } from '@/components/ui/GroupedCard'
-import { IconTile } from '@/components/ui/IconTile'
 import { Banner, Note, PageHeader } from '@/components/ui/Layout'
 import { Screen } from '@/components/ui/Screen'
 import { BARANGAYS } from '@/data/barangays'
@@ -16,7 +15,7 @@ import { validateField, validateProfile } from '@/data/profileValidation'
 import { getProfile, saveProfile } from '@/db/profile'
 import { NICKNAME_MAX_LENGTH } from '@/db/settings'
 import { useSettings } from '@/providers/SettingsProvider'
-import { space, touchTarget, typeRamp } from '@/theme/tokens'
+import { radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
 const ABOUT_KEYS = ['municipality', 'barangay', 'blood', 'allergies', 'contactName', 'contactPhone']
@@ -87,9 +86,9 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <Screen topInset>
+    <Screen topInset contentStyle={step === 0 ? styles.welcomeScreen : undefined}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.dots} accessibilityLabel={`Step ${step + 1} of 3`}>
+        <View style={[styles.dots, step === 0 && styles.centeredDots]} accessibilityLabel={`Step ${step + 1} of 3`}>
           {[0, 1, 2].map((index) => (
             <View key={index} style={[styles.dot, { backgroundColor: index <= step ? colors.teal : colors.line }]} />
           ))}
@@ -97,10 +96,17 @@ export default function OnboardingScreen() {
 
         {step === 0 && (
           <View style={styles.welcome}>
-            <IconTile icon="shield" tone="teal" />
+            <View style={styles.illustrations}>
+              <Image source={require('../../assets/onboarding/prepare.png')} accessibilityLabel="A family preparing an emergency go bag" style={[styles.heroImage, { backgroundColor: colors.surface }]} resizeMode="cover" />
+              <View style={styles.supportingImages}>
+                <Image source={require('../../assets/onboarding/evacuate.png')} accessibilityLabel="A family moving safely to an evacuation shelter" style={[styles.supportingImage, { backgroundColor: colors.surface }]} resizeMode="cover" />
+                <Image source={require('../../assets/onboarding/community.png')} accessibilityLabel="Neighbors planning together for emergencies" style={[styles.supportingImage, { backgroundColor: colors.surface }]} resizeMode="cover" />
+              </View>
+            </View>
+            <AppText variant="eyebrow" tone="teal" align="center">Prepare. Stay safe. Help each other.</AppText>
             <AppText variant="pageTitle" align="center" accessibilityRole="header" style={styles.welcomeTitle}>Welcome to GabAI</AppText>
-            <AppText tone="soft" align="center">
-              Your offline-first safety companion for Marinduque — disaster guides, first aid steps, and emergency hotlines. Everything works without internet.
+            <AppText tone="soft" align="center" style={styles.welcomeIntro}>
+              Be ready for emergencies. Safety guides, first aid, and hotlines—even offline.
             </AppText>
             <View style={styles.singleAction}>
               <Button label="Get started" onPress={() => setStep(1)} />
@@ -156,8 +162,15 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: space[2], marginBottom: space[6] },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  welcome: { alignItems: 'center', gap: space[4], paddingTop: space[8] },
-  welcomeTitle: { marginTop: space[2] },
+  welcomeScreen: { flexGrow: 1, justifyContent: 'center' },
+  centeredDots: { justifyContent: 'center' },
+  welcome: { alignItems: 'center', gap: space[4], width: '100%', maxWidth: 480, alignSelf: 'center' },
+  illustrations: { flexDirection: 'row', gap: space[3], width: '100%', aspectRatio: 1.3, maxHeight: 320, marginBottom: space[2] },
+  heroImage: { flex: 1.35, height: '100%', borderRadius: radius.lg },
+  supportingImages: { flex: 1, gap: space[3] },
+  supportingImage: { flex: 1, width: '100%', borderRadius: radius.group },
+  welcomeTitle: { width: '100%' },
+  welcomeIntro: { maxWidth: 340 },
   singleAction: { alignSelf: 'stretch', flexDirection: 'row', marginTop: space[4] },
   nameInput: { minHeight: touchTarget, borderRadius: 12, paddingHorizontal: space[4], paddingVertical: 0 },
   actions: { flexDirection: 'row', gap: space[3], marginTop: space[6] },

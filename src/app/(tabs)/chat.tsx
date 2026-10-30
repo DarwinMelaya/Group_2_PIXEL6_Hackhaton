@@ -142,7 +142,7 @@ export default function ChatScreen() {
         onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
         ListHeaderComponent={
           <View style={styles.intro}>
-            <View style={styles.orb}><Icon name="shield" size={31} color={brand.onPrimary} /></View>
+            <View style={[styles.orb, { backgroundColor: colors.tealSoft }]}><Icon name="shield" size={27} color={colors.teal} /></View>
             <AppText variant="pageTitle" align="center" style={styles.introTitle}>GabAI Assistant</AppText>
             <AppText variant="caption" tone="soft" align="center">Answers grounded in verified safety guides</AppText>
           </View>
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   attachAction: { width: 40, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: space[5], paddingTop: space[2], paddingBottom: space[4], gap: space[3] },
   intro: { alignItems: 'center', marginBottom: space[4] },
-  orb: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.primary, marginBottom: space[3] },
+  orb: { width: 56, height: 56, borderRadius: radius.group, alignItems: 'center', justifyContent: 'center', marginBottom: space[4] },
   introTitle: { marginBottom: space[1] },
   bubble: { maxWidth: '84%', paddingHorizontal: 14, paddingVertical: space[3], borderRadius: radius.group },
   mine: { alignSelf: 'flex-end', borderBottomRightRadius: 5 },
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   pendingThumb: { width: 44, height: 44, borderRadius: radius.sm },
   suggestions: { marginTop: space[2] },
   suggestionsLabel: { marginBottom: space[2] },
-  prompt: { flexDirection: 'row', alignItems: 'center', gap: space[2], borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], minHeight: touchTarget, marginBottom: space[2] },
+  prompt: { flexDirection: 'row', alignItems: 'center', gap: space[2], borderRadius: radius.md, paddingHorizontal: space[4], paddingVertical: space[3], minHeight: touchTarget, marginBottom: space[2] },
   notice: { marginHorizontal: space[5], marginBottom: space[2] },
   composer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: space[4], marginBottom: space[3], paddingLeft: space[1], paddingRight: 6, minHeight: 56, borderWidth: 1, borderRadius: 15 },
   input: { flex: 1, minWidth: 0, paddingVertical: space[2] },

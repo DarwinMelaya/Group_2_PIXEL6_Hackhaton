@@ -8,7 +8,7 @@ import { Touchable } from '@/components/ui/Touchable'
 import { brand, space, touchTarget } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
-export const TAB_BAR_HEIGHT = 64
+export const TAB_BAR_HEIGHT = 60
 
 const tabs: Record<string, { label: string; icon: IconName; raised?: boolean }> = {
   index: { label: 'Home', icon: 'home' },
@@ -18,7 +18,7 @@ const tabs: Record<string, { label: string; icon: IconName; raised?: boolean }> 
   profile: { label: 'Profile', icon: 'profile' },
 }
 
-/** Custom bottom navigation matching the prototype, including the raised center Capture action. */
+/** Minimal destinations with the original raised Capture action. */
 export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const { colors } = useTheme()
   return (
@@ -30,7 +30,7 @@ export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarPr
         const tab = tabs[route.name]
         if (!tab) return null
         const focused = state.index === index
-        const color = tab.raised ? colors.teal : focused ? colors.teal : colors.inkSoft
+        const color = focused ? colors.teal : colors.inkSoft
         const onPress = () => {
           const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
           if (!focused && !event.defaultPrevented) {
@@ -45,7 +45,7 @@ export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarPr
             onLongPress={() => emitter.emit({ type: 'tabLongPress', target: route.key })}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
-            accessibilityLabel={tab.raised ? 'Open image capture' : tab.label}
+            accessibilityLabel={tab.label}
             pressedScale={tab.raised ? 0.94 : 1}
             style={styles.item}
           >
@@ -54,9 +54,11 @@ export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarPr
                 <Icon name={tab.icon} size={22} color={brand.onPrimary} />
               </View>
             ) : (
-              <Icon name={tab.icon} size={22} color={color} />
+              <View style={styles.iconSlot}>
+                <Icon name={tab.icon} size={24} color={color} />
+              </View>
             )}
-            <AppText variant="tab" numberOfLines={1} style={{ color }}>{tab.label}</AppText>
+            <AppText variant="tab" numberOfLines={1} style={{ color, fontWeight: focused ? '600' : '500' }}>{tab.label}</AppText>
           </Touchable>
         )
       })}
@@ -66,7 +68,7 @@ export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarPr
 
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: space[2] },
-  item: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: touchTarget },
+  item: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[1], minWidth: 0, minHeight: touchTarget },
   raised: {
     width: 56,
     height: 56,
@@ -81,5 +83,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
+  },
+  iconSlot: {
+    width: touchTarget,
+    maxWidth: '100%',
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })

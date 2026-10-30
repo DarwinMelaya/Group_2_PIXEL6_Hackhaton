@@ -19,7 +19,7 @@ type ButtonProps = {
 
 export function Button({ label, onPress, variant = 'primary', icon, loading, disabled, style }: ButtonProps) {
   const { colors } = useTheme()
-  const background = variant === 'primary' ? brand.primary : variant === 'destructive' ? brand.emergency : colors.surface
+  const background = variant === 'primary' ? brand.primary : variant === 'destructive' ? brand.emergency : colors.tealSoft
   const foreground = variant === 'secondary' ? colors.teal : brand.onPrimary
   return (
     <Touchable
@@ -29,11 +29,11 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
       style={[styles.button, { backgroundColor: background, opacity: disabled ? 0.5 : 1 }, style]}
     >
       {loading ? <ActivityIndicator color={foreground} /> : icon ? <Icon name={icon} size={20} color={foreground} /> : null}
-      <AppText variant="bodyStrong" style={{ color: foreground }}>{label}</AppText>
+      <AppText variant="bodyStrong" align="center" style={{ color: foreground, flexShrink: 1 }}>{label}</AppText>
     </Touchable>
   )
 }
 
 const styles = StyleSheet.create({
-  button: { flex: 1, minHeight: 48, borderRadius: radius.group, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2], paddingHorizontal: space[4] },
+  button: { flex: 1, minHeight: 50, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2], paddingHorizontal: space[4], paddingVertical: space[3] },
 })

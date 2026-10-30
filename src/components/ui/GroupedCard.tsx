@@ -22,5 +22,5 @@ export function GroupedCard({ children, style }: { children: ReactNode; style?: 
 
 const styles = StyleSheet.create({
   card: { borderRadius: radius.group, overflow: 'hidden' },
-  separator: { height: StyleSheet.hairlineWidth },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: 16 },
 })

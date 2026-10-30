@@ -29,7 +29,7 @@ export function ListRow({ title, subtitle, leading, trailing, destructive, onPre
     <Touchable onPress={onPress} disabled={!onPress} pressedScale={1} accessibilityLabel={accessibilityLabel ?? title} style={[styles.row, { backgroundColor: colors.surface }]}>
       {leadingNode}
       <View style={styles.body}>
-        <AppText tone={destructive ? 'danger' : 'default'} weight="500">{title}</AppText>
+        <AppText tone={destructive ? 'danger' : 'default'}>{title}</AppText>
         {subtitle ? <AppText variant="small" tone="soft" style={styles.subtitle}>{subtitle}</AppText> : null}
       </View>
       {trailing ?? (onPress ? <Icon name="chevron" size={18} color={destructive ? colors.danger : colors.muted} /> : null)}

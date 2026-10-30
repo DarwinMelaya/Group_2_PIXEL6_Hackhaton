@@ -42,7 +42,7 @@ export function SafetyTipCard() {
         <Icon name="shield" size={23} color={colors.teal} />
       </View>
       <View style={styles.text}>
-        <AppText variant="bodyStrong" style={{ color: colors.tipText }}>{tip.title}</AppText>
+        <AppText variant="bodyStrong">{tip.title}</AppText>
         <AppText variant="caption" style={[styles.copy, { color: colors.tipText }]}>{tip.body}</AppText>
       </View>
     </View>
@@ -50,8 +50,8 @@ export function SafetyTipCard() {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3], padding: space[5], borderRadius: radius.lg },
-  icon: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  card: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3], padding: space[4], borderRadius: radius.group },
+  icon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1 },
-  copy: { marginTop: space[2], lineHeight: 21 },
+  copy: { marginTop: space[1] },
 })
