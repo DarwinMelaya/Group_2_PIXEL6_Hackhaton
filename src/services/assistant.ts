@@ -5,7 +5,7 @@ import { guides, type Guide } from '@/data/guides'
 import { BackendError, generateBackend } from '@/services/customBackend'
 import { generateGemini, GeminiError, type GeminiImage } from '@/services/gemini'
 import { modelLabel, resolveModel } from '@/services/geminiModels'
-import { generateLocal, getLocalModelStatus, LOCAL_MODEL } from '@/services/localModel'
+import { generateLocal, getLocalModelStatus } from '@/services/localModel'
 import { getBackendToken, getGeminiKey } from '@/storage/secrets'
 
 const KIT_TERMS = ['kit', 'go-bag', 'go bag', 'emergency bag', 'prepare', 'supplies']
@@ -166,8 +166,6 @@ export async function generateReply(
   if (image && !notice) notice = 'Photo analysis needs Cloud AI. Answered from your text only.'
   const local = await localReply(system, [...modelHistory, { role: 'user' as const, text: questionText }], nPredict)
   if (local) return notice ? { text: local.text, usage: { source: 'local', ...local.usage }, notice } : { text: local.text, usage: { source: 'local', ...local.usage } }
-  if (!notice && settings.aiMode === 'local' && getLocalModelStatus() !== 'ready') {
-    notice = `Download ${LOCAL_MODEL.name} in Chat settings for full AI answers. Showing guide steps.`
-  }
+  // Without the on-device model, guide retrieval is the normal local answer — no nagging.
   return { text: guideReply(questionText || 'photo'), notice }
 }

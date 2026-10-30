@@ -30,16 +30,26 @@ export const getModelInfo = (id: string): GeminiModelInfo | undefined => GEMINI_
  */
 export const thinkingLevelFor = (id: string): 'minimal' | 'low' => getModelInfo(id)?.thinking ?? 'low'
 
-export const supportsVision = (id: string): boolean => getModelInfo(id)?.vision ?? false
+/**
+ * Model ids the key can call but that are not in the curated catalog get a
+ * heuristic guess: every Gemini since 1.5 is multimodal except a few obvious
+ * text-only or non-image families. Wrong guesses degrade to a text answer.
+ */
+const NON_VISION_PATTERN = /embedding|aqa|tts|native-audio|imagen|veo|robotics|gemini-1\.0|text-/i
+
+export const supportsVision = (id: string): boolean => getModelInfo(id)?.vision ?? !NON_VISION_PATTERN.test(id)
 
 /** App-defined token budgets shown in the usage dialog. When a model reaches its budget, the user can reset it. */
 export const TOKEN_LIMITS = { local: 100_000, gemini: 250_000, custom: 250_000 } as const
 
 export const isGeminiModel = (value: unknown): value is GeminiModel => GEMINI_MODELS.some((model) => model.id === value)
 
-/** `'auto'` picks the best model the API key can reach; anything else is a manual choice. */
-export type GeminiModelChoice = GeminiModel | 'auto'
+/**
+ * `'auto'` picks the best model the API key can reach; anything else is a manual
+ * choice — any id returned by models.list is accepted, not just the catalog.
+ */
+export type GeminiModelChoice = string
 
 export const AUTO_MODEL = 'auto' as const
 
-export const isGeminiModelChoice = (value: unknown): value is GeminiModelChoice => value === AUTO_MODEL || isGeminiModel(value)
+export const isGeminiModelChoice = (value: unknown): value is GeminiModelChoice => typeof value === 'string' && value.trim().length > 0

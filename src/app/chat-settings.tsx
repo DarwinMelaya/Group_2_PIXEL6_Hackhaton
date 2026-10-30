@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking'
-import { useEffect, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import { Modal, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
 
 import { SelectField } from '@/components/SelectField'
 import { AppText } from '@/components/ui/AppText'
@@ -11,16 +11,16 @@ import { BackButton, Banner, PageHeader, SettingsLabel } from '@/components/ui/L
 import { ListRow } from '@/components/ui/ListRow'
 import { Screen } from '@/components/ui/Screen'
 import { Touchable } from '@/components/ui/Touchable'
-import { GEMINI_MODELS } from '@/data/ai'
+import { GEMINI_MODELS, getModelInfo } from '@/data/ai'
 import type { AiMode, ReplyLength } from '@/db/settings'
 import { useSettings } from '@/providers/SettingsProvider'
 import { getDeviceSpecs, localAiCapability, OFFLINE_AI_MIN_FREE_GB, OFFLINE_AI_RECOMMENDED_RAM_GB } from '@/services/deviceSpecs'
 import { BackendError, testBackend } from '@/services/customBackend'
 import { GeminiError, testGeminiKey } from '@/services/gemini'
-import { clearModelCache, fetchAvailableModels, resolveModel } from '@/services/geminiModels'
+import { clearModelCache, fetchAvailableModels, modelLabel, resolveModel } from '@/services/geminiModels'
 import { LOCAL_MODEL, useLocalModel } from '@/services/localModel'
 import { deleteBackendToken, deleteGeminiKey, getBackendToken, getGeminiKey, setBackendToken, setGeminiKey } from '@/storage/secrets'
-import { radius, space, typeRamp } from '@/theme/tokens'
+import { radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 import { confirmAction } from '@/utils/dialogs'
 
@@ -31,22 +31,6 @@ const AI_MODES: { value: AiMode; label: string; detail: string }[] = [
   { value: 'cloud', label: 'Cloud AI', detail: 'Google Gemini. Needs internet.' },
   { value: 'custom', label: 'Custom backend', detail: 'Your own OpenAI-compatible server (Ollama, LM Studio, llama.cpp…).' },
 ]
-
-/** Popup shown before switching AI mode, so the privacy tradeoff is explicit. */
-const MODE_NOTES: Record<AiMode, { title: string; message: string }> = {
-  local: {
-    title: 'Use Local AI?',
-    message: 'Gemma 4 E2B runs entirely on this device. Nothing you type leaves your phone, and it works without internet — but it needs a 2.8 GB download and is slower on older phones.',
-  },
-  cloud: {
-    title: 'Use Cloud AI?',
-    message: 'Replies come from Google Gemini over the internet, and attached photos are uploaded for analysis. It needs a free API key and a connection. Avoid sharing personal health details.',
-  },
-  custom: {
-    title: 'Use a custom backend?',
-    message: 'Messages — and any attached photos — go to the server you configure, not Google. Make sure you trust that server before chatting.',
-  },
-}
 
 const REPLY_LENGTHS: { value: ReplyLength; label: string }[] = [
   { value: 'short', label: 'Short' },
@@ -73,6 +57,7 @@ export default function ChatSettingsScreen() {
   const [backendModel, setBackendModel] = useState(settings.backendModel)
   const [backendToken, setBackendTokenDraft] = useState('')
   const [savedToken, setSavedToken] = useState('')
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [specs] = useState(getDeviceSpecs)
   /** Model ids this API key can reach; null while unknown (never fetched). */
@@ -80,6 +65,28 @@ export default function ChatSettingsScreen() {
 
   const selectedMode = AI_MODES.find((option) => option.value === settings.aiMode) ?? AI_MODES[0]
   const capability = localAiCapability(specs)
+  const selectedModelLabel = settings.geminiModel === 'auto'
+    ? (available?.length ? `Automatic · ${modelLabel(available[0])}` : 'Automatic')
+    : modelLabel(settings.geminiModel)
+
+  // The popup lists every model the key can call, not just the curated catalog.
+  // Catalog entries the key cannot reach stay visible but disabled.
+  const pickerModels = useMemo(() => {
+    if (available === null) {
+      return GEMINI_MODELS.map((option) => ({ id: option.id, label: option.label, detail: option.detail, unavailable: false }))
+    }
+    const rows = available.map((id) => {
+      const info = getModelInfo(id)
+      return { id, label: info?.label ?? modelLabel(id), detail: info?.detail ?? 'Available on your API key', unavailable: false }
+    })
+    for (const option of GEMINI_MODELS) {
+      if (!available.includes(option.id)) {
+        rows.push({ id: option.id, label: option.label, detail: 'Not available on this API key', unavailable: true })
+      }
+    }
+    return rows
+  }, [available])
+  const { height: windowHeight } = useWindowDimensions()
 
   useEffect(() => {
     getGeminiKey().then((key) => setSavedKey(key ?? '')).catch(() => setSavedKey(''))
@@ -259,9 +266,7 @@ export default function ChatSettingsScreen() {
           onChange={(label) => {
             const option = AI_MODES.find((item) => item.label === label)
             if (!option || option.value === settings.aiMode) return
-            const note = MODE_NOTES[option.value]
-            void confirmAction({ title: note.title, message: note.message, confirmLabel: `Switch to ${option.label}` })
-              .then((confirmed) => { if (confirmed) void updateSettings({ aiMode: option.value }) })
+            void updateSettings({ aiMode: option.value })
           }}
         />
         <AppText variant="small" tone="soft" style={styles.footnote}>{selectedMode.detail}</AppText>
@@ -358,46 +363,68 @@ export default function ChatSettingsScreen() {
               </View>
             </View>
           )}
-          <View style={[styles.card, styles.models, { backgroundColor: colors.surface }]} accessibilityRole="radiogroup" accessibilityLabel="Gemini model">
+          <View style={styles.fieldWrap}>
             <Touchable
-              onPress={() => updateSettings({ geminiModel: 'auto' })}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: settings.geminiModel === 'auto' }}
-              style={styles.modelRow}
+              onPress={() => setModelPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Gemini model"
+              style={[styles.field, { borderColor: colors.line, backgroundColor: colors.background }]}
             >
-              <View style={styles.checkSlot} />
-              <View style={styles.modelBody}>
-                <AppText weight="500" align="center">Automatic</AppText>
-                <AppText variant="small" tone="soft" align="center">
-                  {available && available.length > 0
-                    ? `Using ${GEMINI_MODELS.find((option) => option.id === available[0])?.label ?? available[0]}`
-                    : 'Picks the best model your key allows'}
-                </AppText>
-              </View>
-              <View style={styles.checkSlot}>{settings.geminiModel === 'auto' && <Icon name="check" size={18} color={colors.teal} />}</View>
+              <AppText style={styles.fieldValue}>{selectedModelLabel}</AppText>
+              <Icon name="chevronDown" size={18} color={colors.inkSoft} />
             </Touchable>
-            {GEMINI_MODELS.map((option) => {
-              const selected = settings.geminiModel === option.id
-              const unavailable = available !== null && !available.includes(option.id)
-              return (
-                <Touchable
-                  key={option.id}
-                  onPress={() => updateSettings({ geminiModel: option.id })}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected, disabled: unavailable }}
-                  disabled={unavailable}
-                  style={[styles.modelRow, unavailable && styles.modelUnavailable]}
-                >
-                  <View style={styles.checkSlot} />
-                  <View style={styles.modelBody}>
-                    <AppText weight="500" align="center" tone={unavailable ? 'soft' : 'default'}>{option.label}</AppText>
-                    <AppText variant="small" tone="soft" align="center">{unavailable ? 'Not available on this API key' : option.detail}</AppText>
-                  </View>
-                  <View style={styles.checkSlot}>{selected && <Icon name="check" size={18} color={colors.teal} />}</View>
-                </Touchable>
-              )
-            })}
           </View>
+
+          <Modal visible={modelPickerOpen} transparent animationType="fade" onRequestClose={() => setModelPickerOpen(false)}>
+            <View style={styles.modalCenter}>
+              <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={() => setModelPickerOpen(false)} />
+              <View style={[styles.popup, { backgroundColor: colors.surface }]} accessibilityRole="radiogroup" accessibilityLabel="Gemini model" accessibilityViewIsModal>
+                <AppText variant="sheetTitle" accessibilityRole="header" style={styles.popupTitle}>Gemini model</AppText>
+              <Touchable
+                onPress={() => { void updateSettings({ geminiModel: 'auto' }); setModelPickerOpen(false) }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: settings.geminiModel === 'auto' }}
+                style={styles.modelRow}
+              >
+                <View style={styles.checkSlot} />
+                <View style={styles.modelBody}>
+                  <AppText weight="500" align="center">Automatic</AppText>
+                  <AppText variant="small" tone="soft" align="center">
+                    {available && available.length > 0
+                      ? `Using ${modelLabel(available[0])}`
+                      : 'Picks the best model your key allows'}
+                  </AppText>
+                </View>
+                <View style={styles.checkSlot}>{settings.geminiModel === 'auto' && <Icon name="check" size={18} color={colors.teal} />}</View>
+              </Touchable>
+              <ScrollView style={[styles.modelList, { maxHeight: windowHeight * 0.5 }]} keyboardShouldPersistTaps="handled">
+              {pickerModels.map((option) => {
+                const selected = settings.geminiModel === option.id
+                return (
+                  <Touchable
+                    key={option.id}
+                    onPress={() => { void updateSettings({ geminiModel: option.id }); setModelPickerOpen(false) }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected, disabled: option.unavailable }}
+                    disabled={option.unavailable}
+                    style={[styles.modelRow, option.unavailable && styles.modelUnavailable]}
+                  >
+                    <View style={styles.checkSlot} />
+                    <View style={styles.modelBody}>
+                      <AppText weight="500" align="center" tone={option.unavailable ? 'soft' : 'default'}>{option.label}</AppText>
+                      <AppText variant="small" tone="soft" align="center">{option.detail}</AppText>
+                    </View>
+                    <View style={styles.checkSlot}>{selected && <Icon name="check" size={18} color={colors.teal} />}</View>
+                  </Touchable>
+                )
+              })}
+              </ScrollView>
+              <View style={styles.popupClose}>
+                <Button label="Close" variant="secondary" onPress={() => setModelPickerOpen(false)} />
+              </View>
+              </View>
+            </View>
+          </Modal>
           <View style={styles.actions}>
             <Button label="Test connection" variant="secondary" disabled={!savedKey} loading={busy} onPress={testConnection} />
           </View>
@@ -491,8 +518,15 @@ const styles = StyleSheet.create({
   segment: { flex: 1, minHeight: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   segmentSelected: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], paddingVertical: space[3] },
-  models: { marginTop: space[3], padding: space[1] },
   backendCard: { marginTop: space[3], gap: space[3] },
+  fieldWrap: { marginTop: space[3] },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space[2], borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], minHeight: touchTarget },
+  fieldValue: { flex: 1, minWidth: 0 },
+  modalCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space[5] },
+  popup: { width: '100%', maxWidth: 320, borderRadius: radius.lg, padding: space[5], gap: space[2] },
+  popupTitle: { marginBottom: space[2] },
+  popupClose: { flexDirection: 'row', marginTop: space[2] },
+  modelList: { flexGrow: 0 },
   modelRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], padding: space[3] },
   modelBody: { flex: 1, minWidth: 0, alignItems: 'center' },
   modelUnavailable: { opacity: 0.45 },

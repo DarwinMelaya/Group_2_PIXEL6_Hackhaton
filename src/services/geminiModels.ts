@@ -7,14 +7,16 @@ const CACHE_TTL_MS = 60 * 60 * 1000
 
 type ListedModel = { name?: string; supportedGenerationMethods?: string[] }
 
-let cache: { key: string; at: number; models: GeminiModel[] } | null = null
+let cache: { key: string; at: number; models: string[] } | null = null
 
 /**
- * Models this key can actually call, in GabAI's preference order (cheapest first).
+ * Every model this key can call through generateContent — the full free-tier
+ * list, not just GabAI's curated catalog. Ordered by GabAI preference first so
+ * `auto` still picks cheap models; unknown ids follow alphabetically.
  * Returns `null` when the list could not be fetched — offline, blocked, or a bad key —
  * so callers can fall back to the configured model instead of refusing to answer.
  */
-export async function fetchAvailableModels(apiKey: string): Promise<GeminiModel[] | null> {
+export async function fetchAvailableModels(apiKey: string): Promise<string[] | null> {
   if (cache && cache.key === apiKey && Date.now() - cache.at < CACHE_TTL_MS) return cache.models
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
@@ -22,15 +24,13 @@ export async function fetchAvailableModels(apiKey: string): Promise<GeminiModel[
     const response = await fetch(ENDPOINT, { headers: { 'x-goog-api-key': apiKey }, signal: controller.signal })
     if (!response.ok) return null
     const body = await response.json() as { models?: ListedModel[] }
-    const callable = new Set(
-      (body.models ?? [])
-        .filter((model) => model.supportedGenerationMethods?.includes('generateContent'))
-        .map((model) => model.name?.replace(/^models\//, ''))
-        .filter((name): name is string => Boolean(name)),
-    )
-    // Intersect with the curated catalog: models.list also returns TTS, image and
-    // robotics models that accept generateContent but would be useless here.
-    const models = MODEL_PREFERENCE.filter((id) => callable.has(id))
+    const callable = (body.models ?? [])
+      .filter((model) => model.supportedGenerationMethods?.includes('generateContent'))
+      .map((model) => model.name?.replace(/^models\//, ''))
+      .filter((name): name is string => Boolean(name))
+    // Catalog ids first in preference order, then every other id the key exposes.
+    const rest = callable.filter((id) => !MODEL_PREFERENCE.includes(id as GeminiModel)).sort()
+    const models = [...MODEL_PREFERENCE.filter((id) => callable.includes(id)), ...rest]
     cache = { key: apiKey, at: Date.now(), models }
     return models
   } catch {
@@ -55,7 +55,7 @@ export async function resolveModel(
   apiKey: string,
   configured: GeminiModelChoice,
   options: { needsVision?: boolean } = {},
-): Promise<{ model: GeminiModel; substituted: boolean; reason?: string }> {
+): Promise<{ model: string; substituted: boolean; reason?: string }> {
   const needsVision = options.needsVision ?? false
   const available = await fetchAvailableModels(apiKey)
 
@@ -78,4 +78,7 @@ export async function resolveModel(
   return { model: fallback, substituted: true, reason: `${configured} is not available on this API key` }
 }
 
-export const modelLabel = (id: string) => GEMINI_MODELS.find((model) => model.id === id)?.label ?? id
+/** 'gemini-2.0-flash-lite' → 'Gemini 2.0 Flash Lite' when the id is not in the catalog. */
+export const modelLabel = (id: string) =>
+  GEMINI_MODELS.find((model) => model.id === id)?.label
+  ?? id.replace(/^models\//, '').replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())

@@ -13,7 +13,6 @@ import { recordTokenUsage } from '@/db/tokenUsage'
 import { useSettings } from '@/providers/SettingsProvider'
 import { generateReply } from '@/services/assistant'
 import { captureAttachment, takeStagedAttachment, AttachmentError, type Attachment, type AttachmentSource } from '@/services/attachment'
-import { isGeminiModel } from '@/data/ai'
 import { deletePhotoFile } from '@/storage/photos'
 import { brand, radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
@@ -85,7 +84,7 @@ export default function ChatScreen() {
       setNotice(reply.notice ?? '')
       // A resolved substitute is a better choice than a broken manual one; keep it.
       // Skipped for 'auto' — it should keep re-resolving on every message.
-      if (reply.model && settings.geminiModel !== 'auto' && reply.model !== settings.geminiModel && isGeminiModel(reply.model)) {
+      if (reply.model && settings.geminiModel !== 'auto' && reply.model !== settings.geminiModel) {
         void updateSettings({ geminiModel: reply.model })
       }
       if (reply.usage) await recordTokenUsage(db, reply.usage.source, reply.usage).catch(() => {})

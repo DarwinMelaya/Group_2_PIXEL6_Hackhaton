@@ -1,4 +1,4 @@
-import { thinkingLevelFor } from '@/data/ai'
+import { isGeminiModel, thinkingLevelFor } from '@/data/ai'
 import type { TokenUsage } from '@/db/tokenUsage'
 
 /** Thinking models are slow on a non-streaming call; 20s was tripping on normal replies. */
@@ -68,7 +68,9 @@ export async function generateGemini({ apiKey, model, system, history }: { apiKe
         generationConfig: {
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           temperature: 0.4,
-          thinkingConfig: { thinkingLevel: thinkingLevelFor(model) },
+          // thinkingConfig is only valid on the catalog's thinking models; older or
+          // non-catalog ids from models.list would reject the whole request over it.
+          ...(isGeminiModel(model) ? { thinkingConfig: { thinkingLevel: thinkingLevelFor(model) } } : {}),
         },
       }),
       signal: controller.signal,
