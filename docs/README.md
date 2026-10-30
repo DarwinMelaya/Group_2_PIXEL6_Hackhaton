@@ -1,5 +1,37 @@
 # GabAI
 
+Offline-first safety companion for Marinduque, PH. Expo SDK 58 / React Native, iOS & Android (web for previews).
+
+## Features
+
+### GabAI Assistant (chatbot)
+
+- **Three AI modes**, switchable in Chatbot settings:
+  - **Local AI** — Gemma 4 E2B runs on-device via llama.rn (optional 2.8 GB download, native only). Without it, the built-in guides answer instead.
+  - **Cloud AI** — Google Gemini. Bring your own free API key (stored in SecureStore, never backed up).
+  - **Custom backend** — any OpenAI-compatible server (Ollama, LM Studio, llama.cpp, vLLM) with optional bearer token.
+- **Automatic model selection** — fetches the models your key can actually call (`models.list`, cached), prefers the cheapest free-tier-friendly catalog model, and respects vision requirements. Manual override in settings; unavailable models are shown disabled.
+- **Photo analysis** — attach a photo from the camera or library with optional extra context; Gemini vision models analyze it (inline data, ~20 MB request cap). Local/guide fallback says so honestly instead of pretending.
+- **Graceful fallback** — cloud/custom failure → local model → bundled-guide keyword retrieval, with a banner explaining which layer answered.
+- **Token usage dialog** — per-source usage ring (only the active source is shown), resettable budgets.
+- Reply length (short/detailed) applies to local and cloud replies.
+
+### Safety content
+
+- **Disaster guides** — before/during/after steps for local hazards (draft; needs authority review).
+- **Emergency hotlines** — GPS resolves your barangay → municipal contacts, plus national and provincial numbers; tap to call. Manual municipality picker as fallback.
+
+### Capture
+
+- Camera or library photos saved on-device as a visual log; "Ask GabAI" sends a shot to the chat for analysis.
+
+### Profile & data
+
+- Emergency profile (personal, health, contact info) stored locally in SQLite.
+- JSON backup export/import; clear-all-data. Onboarding with nickname on first launch.
+- Light/dark/system theme and in-app text-size scaling.
+- Web preview support via per-platform `.web.ts` fallbacks (no local model or filesystem on web).
+
 ## Project structure
 
 ```
