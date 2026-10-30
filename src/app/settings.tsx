@@ -178,7 +178,7 @@ export default function SettingsScreen() {
 }
 
 function AppearancePreview({ value }: { value: Appearance }) {
-  const halves = [value]
+  const halves = [value] as const
   return (
     <View style={styles.previewFrame}>
       {halves.map((scheme) => {

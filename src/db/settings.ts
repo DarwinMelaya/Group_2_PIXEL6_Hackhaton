@@ -14,14 +14,63 @@ export type AiMode = (typeof AI_MODES)[number]
 export const REPLY_LENGTHS = ['short', 'detailed'] as const
 export type ReplyLength = (typeof REPLY_LENGTHS)[number]
 
-export type Settings = { appearance: Appearance; textSize: TextSize; nickname: string; onboarded: boolean; aiMode: AiMode; localReplyLength: ReplyLength; geminiModel: GeminiModelChoice; backendUrl: string; backendModel: string }
+export const AVATAR_TONES = ['teal', 'sky', 'blue', 'violet', 'rose', 'amber'] as const
+export type AvatarTone = (typeof AVATAR_TONES)[number]
 
-export const defaultSettings: Settings = { appearance: 'light', textSize: 'standard', nickname: '', onboarded: false, aiMode: 'local', localReplyLength: 'short', geminiModel: 'auto', backendUrl: '', backendModel: '' }
+export const ILLUSTRATED_AVATARS = [
+  'morion',
+  'responder',
+  'gabai',
+  'explorer',
+  'medic',
+  'islander',
+  'bantay',
+  'ming',
+] as const
+export type IllustratedAvatar = (typeof ILLUSTRATED_AVATARS)[number]
+
+export const AVATAR_PRESETS = ['auto', 'initials', ...ILLUSTRATED_AVATARS] as const
+export type AvatarPreset = (typeof AVATAR_PRESETS)[number]
+
+export type Settings = {
+  appearance: Appearance
+  textSize: TextSize
+  nickname: string
+  avatarPhoto: string
+  avatarTone: AvatarTone
+  avatarPreset: AvatarPreset
+  onboarded: boolean
+  aiMode: AiMode
+  localReplyLength: ReplyLength
+  geminiModel: GeminiModelChoice
+  backendUrl: string
+  backendModel: string
+}
+
+export const defaultSettings: Settings = {
+  appearance: 'light',
+  textSize: 'standard',
+  nickname: '',
+  avatarPhoto: '',
+  avatarTone: 'teal',
+  avatarPreset: 'auto',
+  onboarded: false,
+  aiMode: 'local',
+  localReplyLength: 'short',
+  geminiModel: 'auto',
+  backendUrl: '',
+  backendModel: '',
+}
 
 export const isAppearance = (value: unknown): value is Appearance => APPEARANCES.includes(value as Appearance)
 export const isTextSize = (value: unknown): value is TextSize => typeof value === 'string' && value in textSizes
 export const isAiMode = (value: unknown): value is AiMode => AI_MODES.includes(value as AiMode)
 export const isReplyLength = (value: unknown): value is ReplyLength => REPLY_LENGTHS.includes(value as ReplyLength)
+export const isAvatarTone = (value: unknown): value is AvatarTone => AVATAR_TONES.includes(value as AvatarTone)
+export const isIllustratedAvatar = (value: unknown): value is IllustratedAvatar =>
+  ILLUSTRATED_AVATARS.includes(value as IllustratedAvatar)
+export const isAvatarPreset = (value: unknown): value is AvatarPreset =>
+  AVATAR_PRESETS.includes(value as AvatarPreset)
 
 /**
  * Async on purpose: expo-sqlite's synchronous API on web requires SharedArrayBuffer
@@ -34,6 +83,9 @@ export async function readSettings(db: SQLiteDatabase): Promise<Settings> {
     appearance: isAppearance(stored.appearance) ? stored.appearance : defaultSettings.appearance,
     textSize: isTextSize(stored.textSize) ? stored.textSize : defaultSettings.textSize,
     nickname: typeof stored.nickname === 'string' ? stored.nickname.trim().slice(0, NICKNAME_MAX_LENGTH) : '',
+    avatarPhoto: typeof stored.avatarPhoto === 'string' ? stored.avatarPhoto : '',
+    avatarTone: isAvatarTone(stored.avatarTone) ? stored.avatarTone : defaultSettings.avatarTone,
+    avatarPreset: isAvatarPreset(stored.avatarPreset) ? stored.avatarPreset : defaultSettings.avatarPreset,
     onboarded: stored.onboarded === 'true',
     aiMode: isAiMode(stored.aiMode) ? stored.aiMode : defaultSettings.aiMode,
     localReplyLength: isReplyLength(stored.localReplyLength) ? stored.localReplyLength : defaultSettings.localReplyLength,

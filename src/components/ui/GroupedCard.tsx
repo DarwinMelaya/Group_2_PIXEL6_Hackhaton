@@ -1,10 +1,10 @@
 import { Children, Fragment, isValidElement, type ReactNode } from 'react'
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 
-import { radius } from '@/theme/tokens'
+import { radius, space } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
-/** iOS-style grouped surface. Inserts hairline separators between children. */
+/** iOS-style grouped surface. Inserts leading-inset hairline separators between children. */
 export function GroupedCard({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { colors } = useTheme()
   const items = Children.toArray(children).filter(isValidElement)
@@ -22,5 +22,5 @@ export function GroupedCard({ children, style }: { children: ReactNode; style?: 
 
 const styles = StyleSheet.create({
   card: { borderRadius: radius.group, overflow: 'hidden' },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 16 },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: space[4] },
 })
