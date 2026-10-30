@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppText } from '@/components/ui/AppText'
 import { Icon } from '@/components/ui/Icon'
@@ -124,7 +123,6 @@ function displayMetric(value: number | null, unit: string, digits = 0): string {
 
 export function WeatherCard() {
   const { colors, scale } = useTheme()
-  const insets = useSafeAreaInsets()
   const [report, setReport] = useState<WeatherReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
@@ -272,7 +270,7 @@ export function WeatherCard() {
         </Touchable>
       </View>
 
-      <Modal visible={forecastOpen} transparent animationType="slide" onRequestClose={() => setForecastOpen(false)}>
+      <Modal visible={forecastOpen} transparent animationType="fade" onRequestClose={() => setForecastOpen(false)}>
         <View style={styles.modalBackdrop}>
           <Touchable
             onPress={() => setForecastOpen(false)}
@@ -282,9 +280,8 @@ export function WeatherCard() {
           />
           <View
             accessibilityViewIsModal
-            style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, space[4]) }]}
+            style={[styles.dialog, { backgroundColor: colors.surface }]}
           >
-            <View style={[styles.grabber, { backgroundColor: colors.line }]} />
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeading}>
                 <AppText variant="sectionTitle">7-day forecast</AppText>
@@ -375,9 +372,8 @@ const styles = StyleSheet.create({
   visual: { flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   forecastButton: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: space[2], borderTopWidth: StyleSheet.hairlineWidth, marginTop: space[2], paddingTop: space[2] },
   forecastButtonLabel: { flex: 1 },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.42)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: '88%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: space[5], paddingTop: space[2] },
-  grabber: { width: 38, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: space[4] },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.42)', alignItems: 'center', justifyContent: 'center', padding: space[5] },
+  dialog: { width: '100%', maxWidth: 380, maxHeight: '85%', borderRadius: radius.lg, paddingHorizontal: space[5], paddingTop: space[4], paddingBottom: space[4] },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3], marginBottom: space[4] },
   sheetHeading: { flex: 1, gap: space[1] },
   closeButton: { width: touchTarget, height: touchTarget, borderRadius: touchTarget / 2, alignItems: 'center', justifyContent: 'center' },

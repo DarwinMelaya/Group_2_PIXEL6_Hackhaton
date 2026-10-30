@@ -21,7 +21,7 @@ type SelectFieldProps = {
   disabled?: boolean
   disabledHint?: string
   error?: boolean
-  /** Shows the options as a centered dialog instead of a bottom sheet. */
+  /** Shows the options as a centered dialog (default). Pass false for a bottom sheet. */
   centered?: boolean
   variant?: 'boxed' | 'plain'
   allowClear?: boolean
@@ -37,7 +37,7 @@ export function SelectField({
   disabled,
   disabledHint,
   error,
-  centered,
+  centered = true,
   variant = 'boxed',
   allowClear,
 }: SelectFieldProps) {

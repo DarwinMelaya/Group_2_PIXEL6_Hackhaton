@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppText } from '@/components/ui/AppText'
 import { Icon } from '@/components/ui/Icon'
@@ -29,7 +28,6 @@ const firstOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(
 /** Pure-JS month/months/years calendar sheet. */
 export function CalendarModal({ visible, value, onSelect, onClose, maxDate = new Date(), minYear = 1900 }: CalendarModalProps) {
   const { colors } = useTheme()
-  const insets = useSafeAreaInsets()
   const [mode, setMode] = useState<ViewMode>('days')
   const [shown, setShown] = useState<Date>(() => {
     const parsed = value ? parseIsoDate(value) : null
@@ -74,9 +72,10 @@ export function CalendarModal({ visible, value, onSelect, onClose, maxDate = new
   if (!visible) return null
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + space[4] }]}>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.center}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
         <View style={styles.header}>
           <Touchable onPress={() => moveMonth(-1)} disabled={mode !== 'days'} accessibilityLabel="Previous month" style={[styles.navButton, { transform: [{ scaleX: -1 }] }, mode !== 'days' && styles.hidden]}>
             <Icon name="chevron" size={20} color={colors.ink} />
@@ -172,14 +171,16 @@ export function CalendarModal({ visible, value, onSelect, onClose, maxDate = new
             <AppText tone="teal">Cancel</AppText>
           </Touchable>
         </View>
+        </View>
       </View>
     </Modal>
   )
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: radius.group, borderTopRightRadius: radius.group, padding: space[4] },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space[5] },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.4)' },
+  dialog: { width: '100%', maxWidth: 340, maxHeight: '85%', borderRadius: radius.group, padding: space[4] },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space[3] },
   navButton: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
   hidden: { opacity: 0 },

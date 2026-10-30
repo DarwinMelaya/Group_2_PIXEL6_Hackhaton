@@ -9,7 +9,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AnimatedAvatarSurface, type AvatarVisualSnapshot } from '@/components/AvatarArt'
 import { AppText } from '@/components/ui/AppText'
@@ -66,7 +65,6 @@ export function AvatarEditSheet({
   children,
 }: AvatarEditSheetProps) {
   const { colors, scheme, scale } = useTheme()
-  const insets = useSafeAreaInsets()
 
   const sheetBackground = scheme === 'dark' ? '#121214' : colors.background
 
@@ -74,7 +72,7 @@ export function AvatarEditSheet({
     <Modal
       visible={open}
       transparent
-      animationType="slide"
+      animationType="fade"
       onShow={onShow}
       onRequestClose={onDismiss}
     >
@@ -88,16 +86,13 @@ export function AvatarEditSheet({
         />
         <View
           style={[
-            styles.sheet,
+            styles.dialog,
             {
               backgroundColor: sheetBackground,
               borderColor: scheme === 'dark' ? colors.line : 'transparent',
-              paddingBottom: Math.max(insets.bottom, space[4]) + space[2],
             },
           ]}
         >
-          <View style={[styles.grabber, { backgroundColor: colors.muted }]} />
-
           <View style={styles.sheetHeader}>
             <View style={styles.headerSpacer} />
             <AppText variant="bodyStrong" align="center" accessibilityRole="header">
@@ -224,25 +219,22 @@ export function AvatarEditSheet({
 const styles = StyleSheet.create({
   modalWrap: {
     flex: 1,
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: space[5],
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
   },
-  sheet: {
+  dialog: {
+    width: '100%',
+    maxWidth: 380,
     maxHeight: '88%',
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: space[5],
     paddingTop: space[2],
-  },
-  grabber: {
-    width: 36,
-    height: 5,
-    borderRadius: 3,
-    alignSelf: 'center',
-    opacity: 0.45,
+    paddingBottom: space[4] + space[2],
   },
   sheetHeader: {
     flexDirection: 'row',
