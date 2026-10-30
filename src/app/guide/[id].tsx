@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon'
 import { IconTile } from '@/components/ui/IconTile'
 import { Touchable } from '@/components/ui/Touchable'
 import { getGuide } from '@/data/guides'
+import { getGuideArtwork } from '@/data/guideArtwork'
 import { radius, space, touchTarget } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 import { goBack } from '@/utils/navigation'
@@ -32,6 +33,7 @@ export default function GuideSheet() {
 
   const phase = guide.phases[phaseIndex]
   const isAid = guide.kind === 'aid'
+  const artwork = getGuideArtwork(guide.id, phase.label)
   return (
     <ScrollView style={{ backgroundColor: colors.surface }} contentContainerStyle={[styles.content, { paddingBottom: space[8] + insets.bottom }]}>
       <View style={styles.header}>
@@ -46,9 +48,9 @@ export default function GuideSheet() {
       </View>
 
       <View style={[styles.illustration, { backgroundColor: colors.background }]}>
-        <GuideIllustration guide={guide} phase={phase.label} caption={isAid ? guide.detail : phase.steps[0] ?? guide.detail} />
+        <GuideIllustration guide={guide} phase={phase.label} />
       </View>
-      <AppText variant="small" tone="soft" style={styles.illustrationCaption}>{guide.detail}</AppText>
+      <AppText variant="small" tone="soft" style={styles.illustrationCaption}>{artwork?.caption ?? guide.detail}</AppText>
 
       {!isAid ? (
         <>

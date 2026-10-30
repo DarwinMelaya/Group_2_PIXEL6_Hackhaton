@@ -8,6 +8,7 @@ export type IconName =
   | 'sun' | 'moon' | 'system' | 'send' | 'arrowLeft' | 'check' | 'profile' | 'heart' | 'settings'
   | 'download' | 'restore' | 'trash' | 'camera' | 'image' | 'close' | 'calendar' | 'chevronDown'
   | 'cloud' | 'rain' | 'wind' | 'pin' | 'eye' | 'chart' | 'paperclip'
+  | 'shuffle' | 'sparkles' | 'edit'
 
 /** Stroke icon set ported 1:1 from the web prototype (24×24 grid, 1.8 stroke). */
 const paths: Record<IconName, ReactNode> = {
@@ -53,6 +54,9 @@ const paths: Record<IconName, ReactNode> = {
   eye: <><Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><Circle cx="12" cy="12" r="3"/></>,
   chart: <><Path d="M3 3v18h18"/><Path d="M18 17V9"/><Path d="M13 17V5"/><Path d="M8 17v-3"/></>,
   paperclip: <Path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>,
+  shuffle: <><Path d="M16 3h5v5"/><Path d="M4 20 21 3"/><Path d="M21 16v5h-5"/><Path d="m15 15 6 6"/><Path d="M4 4l5 5"/></>,
+  sparkles: <><Path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/><Path d="M19 3v4M17 5h4M5 17v3M3.5 18.5h3"/></>,
+  edit: <><Path d="M12 20h9"/><Path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></>,
 }
 
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color: ColorValue }) {

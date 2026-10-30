@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppText } from '@/components/ui/AppText'
-import { Icon, type IconName } from '@/components/ui/Icon'
+import { Icon } from '@/components/ui/Icon'
 import { Touchable } from '@/components/ui/Touchable'
+import { weatherArtwork } from '@/data/weatherArtwork'
+import { conditionFor } from '@/data/weatherConditions'
 import { radius, space, touchTarget } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
@@ -112,18 +114,6 @@ function parseForecastPayload(payload: unknown): WeatherForecastDay[] {
   })
 }
 
-function conditionFor(code: number, isDay: boolean): { label: string; icon: IconName } {
-  if (code === 0) return { label: isDay ? 'Clear skies' : 'Clear night', icon: isDay ? 'sun' : 'moon' }
-  if ([1, 2].includes(code)) return { label: 'Partly cloudy', icon: 'cloud' }
-  if (code === 3) return { label: 'Overcast', icon: 'cloud' }
-  if ([45, 48].includes(code)) return { label: 'Foggy', icon: 'cloud' }
-  if ([51, 53, 55, 56, 57].includes(code)) return { label: 'Drizzle', icon: 'rain' }
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { label: 'Rain showers', icon: 'rain' }
-  if ([71, 73, 75, 77, 85, 86].includes(code)) return { label: 'Snow', icon: 'cloud' }
-  if ([95, 96, 99].includes(code)) return { label: 'Thunderstorms', icon: 'storm' }
-  return { label: 'Current conditions', icon: 'cloud' }
-}
-
 function manilaDate(daysFromToday = 0): string {
   return new Date(Date.now() + 8 * 60 * 60 * 1000 + daysFromToday * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 }
@@ -228,22 +218,37 @@ export function WeatherCard() {
   }, [forecastOpen, forecastRefresh])
 
   const condition = report ? conditionFor(report.code, report.isDay) : null
+  const artwork = condition?.background ? weatherArtwork[condition.background] : null
+  const foreground = artwork ? colors.weatherOnImage : colors.ink
+  const secondary = artwork ? colors.weatherOnImage : colors.weatherMuted
+  const accent = artwork ? colors.weatherOnImage : colors.weatherAccent
   const age = updatedAt ? Math.max(0, Math.floor((now - updatedAt) / 60000)) : null
   const status = loading ? 'Updating…' : failed ? 'Update unavailable' : age === null ? 'Not updated' : age ? `Updated ${age} min ago` : 'Updated just now'
 
   return (
     <>
       <View accessibilityLabel="Weather in Boac, Marinduque" accessibilityState={{ busy: loading }} style={[styles.card, { backgroundColor: colors.weatherSurface, borderColor: colors.weatherBorder }]}>
-        <View pointerEvents="none" style={[styles.glow, { backgroundColor: colors.weatherGlow }]} />
+        {artwork ? (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Image
+              source={artwork}
+              resizeMode="cover"
+              accessible={false}
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, { opacity: 0.5 }]}
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: report?.isDay ? colors.weatherImageScrim : colors.weatherNightScrim }]} />
+          </View>
+        ) : null}
         <View style={styles.header}>
           <View style={styles.location}>
-            <Icon name="pin" size={15} color={colors.weatherAccent} />
-            <AppText variant="caption" weight="600">Boac, Marinduque</AppText>
+            <Icon name="pin" size={15} color={accent} />
+            <AppText variant="caption" weight="600" style={{ color: foreground }}>Boac, Marinduque</AppText>
           </View>
           <View style={styles.actions}>
-            <AppText variant="small" style={{ color: colors.weatherMuted }}>{status}</AppText>
+            <AppText variant="small" style={{ color: secondary }}>{status}</AppText>
             <Touchable onPress={refreshWeather} accessibilityLabel="Refresh weather" style={styles.refresh}>
-              <Icon name="restore" size={17} color={colors.weatherAccent} />
+              <Icon name="restore" size={17} color={accent} />
             </Touchable>
           </View>
         </View>
@@ -251,28 +256,25 @@ export function WeatherCard() {
         <View style={styles.overview}>
           <View style={styles.current}>
             <View style={styles.temperatureRow}>
-              <AppText weight="600" style={[styles.temperature, { fontSize: 56 * scale, lineHeight: 60 * scale }]}>{report ? Math.round(report.temperature) : '—'}</AppText>
-              {report ? <AppText style={[styles.degree, { fontSize: 26 * scale }]}>°C</AppText> : null}
+              <AppText weight="400" style={[styles.temperature, { color: foreground, fontSize: 56 * scale, lineHeight: 64 * scale }]}>{report ? Math.round(report.temperature) : '—'}</AppText>
+              {report ? <AppText style={[styles.degree, { color: foreground, fontSize: 26 * scale }]}>°C</AppText> : null}
             </View>
-            <AppText variant="bodyStrong" style={styles.condition}>{condition?.label ?? (loading ? 'Checking the weather…' : 'Weather unavailable')}</AppText>
-            <AppText variant="caption" style={{ color: colors.weatherMuted }}>{report ? `Feels like ${Math.round(report.feelsLike)}°C` : 'Internet needed for weather updates'}</AppText>
+            <AppText variant="bodyStrong" style={[styles.condition, { color: foreground }]}>{condition?.label ?? (loading ? 'Checking the weather…' : 'Weather unavailable')}</AppText>
+            <AppText variant="caption" style={{ color: secondary }}>{report ? `Feels like ${Math.round(report.feelsLike)}°C` : 'Internet needed for weather updates'}</AppText>
           </View>
           <View style={styles.visual}>
-            <Icon name={condition?.icon ?? 'cloud'} size={72} color={colors.weatherAccent} />
-            <View style={[styles.conditionPill, { backgroundColor: colors.weatherPill }]}>
-              <AppText variant="small" style={{ color: colors.weatherPillText }}>{condition?.label ?? 'Local weather'}</AppText>
-            </View>
+            <Icon name={condition?.icon ?? 'cloud'} size={72} color={accent} />
           </View>
         </View>
 
         <Touchable
           onPress={openForecast}
           accessibilityLabel="Open seven-day weather forecast"
-          style={[styles.forecastButton, { borderTopColor: colors.weatherBorder }]}
+          style={[styles.forecastButton, { borderTopColor: artwork ? colors.weatherImageLine : colors.weatherBorder }]}
         >
-          <Icon name="calendar" size={18} color={colors.weatherAccent} />
-          <AppText variant="caption" weight="600" style={[styles.forecastButtonLabel, { color: colors.weatherDetailInk }]}>7-day forecast</AppText>
-          <Icon name="chevron" size={17} color={colors.weatherMuted} />
+          <Icon name="calendar" size={18} color={accent} />
+          <AppText variant="caption" weight="600" style={[styles.forecastButtonLabel, { color: artwork ? foreground : colors.weatherDetailInk }]}>7-day forecast</AppText>
+          <Icon name="chevron" size={17} color={secondary} />
         </Touchable>
       </View>
 
@@ -364,20 +366,18 @@ function ForecastMetric({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  card: { overflow: 'hidden', position: 'relative', borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: space[5], paddingVertical: space[4] },
-  glow: { position: 'absolute', width: 190, height: 190, borderRadius: 95, right: -25, top: -36, opacity: 0.75 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
+  card: { overflow: 'hidden', position: 'relative', borderRadius: radius.group, paddingHorizontal: space[4], paddingVertical: space[4] },
+  header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space[2] },
   location: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   actions: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   refresh: { width: touchTarget, height: touchTarget, marginVertical: -space[2], marginRight: -space[2], alignItems: 'center', justifyContent: 'center' },
   overview: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3], paddingTop: space[3], paddingBottom: space[2] },
   current: { flex: 1, minWidth: 0 },
   temperatureRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  temperature: { fontWeight: '600', letterSpacing: -2.5, fontVariant: ['tabular-nums'] },
+  temperature: { fontWeight: '400', letterSpacing: -2, fontVariant: ['tabular-nums'] },
   degree: { marginTop: 5, marginLeft: space[1], letterSpacing: -0.5 },
   condition: { marginTop: space[1] },
-  visual: { flexShrink: 0, alignItems: 'center', justifyContent: 'center', gap: space[2] },
-  conditionPill: { maxWidth: 125, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 5, alignItems: 'center' },
+  visual: { flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   forecastButton: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: space[2], borderTopWidth: StyleSheet.hairlineWidth, marginTop: space[2], paddingTop: space[2] },
   forecastButtonLabel: { flex: 1 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.42)', justifyContent: 'flex-end' },
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   grabber: { width: 38, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: space[4] },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3], marginBottom: space[4] },
   sheetHeading: { flex: 1, gap: space[1] },
-  closeButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  closeButton: { width: touchTarget, height: touchTarget, borderRadius: touchTarget / 2, alignItems: 'center', justifyContent: 'center' },
   forecastList: { flexShrink: 1 },
   forecastContent: { gap: space[2], paddingBottom: space[3] },
   forecastRow: { padding: space[3], borderRadius: radius.group },

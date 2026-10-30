@@ -7,23 +7,27 @@ export const palette = {
     background: '#f2f2f7',
     surface: '#ffffff',
     line: '#e5e5ea',
-    teal: '#087f75',
-    tealDark: '#08665f',
-    tealSoft: '#e1f4f0',
-    muted: '#9cada9',
+    teal: '#d62013',
+    tealDark: '#b51a0f',
+    tealSoft: '#feeceb',
+    muted: '#a19998',
     danger: '#c83d3d',
     dangerSoft: '#fbe6e6',
     tipText: '#755815',
     tipBackground: '#fff4d9',
-    overlay: 'rgba(11, 31, 30, 0.45)',
-    weatherSurface: '#eaf2fa',
+    overlay: 'rgba(24, 16, 15, 0.45)',
+    weatherSurface: '#ffffff',
     weatherAccent: '#3275a4',
     weatherGlow: '#e2eff8',
-    weatherBorder: '#cddfe9',
+    weatherBorder: '#e5e5ea',
     weatherMuted: '#526e80',
     weatherPill: '#d4e8f5',
     weatherPillText: '#28556e',
     weatherDetailInk: '#25485e',
+    weatherOnImage: '#ffffff',
+    weatherImageScrim: 'rgba(0, 12, 28, 0.56)',
+    weatherNightScrim: 'rgba(0, 12, 28, 0.65)',
+    weatherImageLine: 'rgba(255, 255, 255, 0.3)',
   },
   dark: {
     ink: '#ffffff',
@@ -31,23 +35,27 @@ export const palette = {
     background: '#000000',
     surface: '#1c1c1e',
     line: '#38383a',
-    teal: '#55d8c8',
-    tealDark: '#8ce7dc',
-    tealSoft: '#173b36',
+    teal: '#ff7426',
+    tealDark: '#ffa066',
+    tealSoft: '#381812',
     muted: 'rgba(255, 255, 255, 0.56)',
     danger: '#ff8585',
     dangerSoft: '#3a1f1f',
-    tipText: '#f4d58a',
-    tipBackground: '#3b321c',
+    tipText: 'rgba(255, 255, 255, 0.72)',
+    tipBackground: '#1c1c1e',
     overlay: 'rgba(0, 0, 0, 0.6)',
-    weatherSurface: '#0c2a3d',
+    weatherSurface: '#1c1c1e',
     weatherAccent: '#afd9ec',
     weatherGlow: '#103c57',
-    weatherBorder: '#214155',
+    weatherBorder: '#38383a',
     weatherMuted: '#aec7d5',
     weatherPill: '#1d4b64',
     weatherPillText: '#d4ecf7',
     weatherDetailInk: '#e1f3fb',
+    weatherOnImage: '#ffffff',
+    weatherImageScrim: 'rgba(0, 12, 28, 0.56)',
+    weatherNightScrim: 'rgba(0, 12, 28, 0.65)',
+    weatherImageLine: 'rgba(255, 255, 255, 0.3)',
   },
 } as const
 
@@ -56,7 +64,7 @@ export type Colors = { [K in keyof (typeof palette)['light']]: string }
 
 /** Fixed brand colors that do not change between light and dark mode. */
 export const brand = {
-  primary: '#087f75',
+  primary: '#d62013',
   emergency: '#c83d3d',
   onPrimary: '#ffffff',
 } as const
@@ -70,10 +78,26 @@ export const tones = {
   coral: { fg: '#d45938', bg: '#fff0e8' },
   orange: { fg: '#d45938', bg: '#fff0e8' },
   rose: { fg: '#c74961', bg: '#ffebef' },
-  teal: { fg: '#087f75', bg: '#e1f4f0' },
+  teal: { fg: '#d62013', bg: '#feeceb' },
 } as const
 
 export type Tone = keyof typeof tones
+
+export const darkTones: Record<Tone, { fg: string; bg: string }> = {
+  sky: { fg: '#7ccbf2', bg: '#133140' },
+  blue: { fg: '#8cb4ff', bg: '#172947' },
+  amber: { fg: '#f4c26b', bg: '#382c18' },
+  violet: { fg: '#b9a8f5', bg: '#272042' },
+  indigo: { fg: '#b9a8f5', bg: '#272042' },
+  coral: { fg: '#f59c82', bg: '#3b221a' },
+  orange: { fg: '#f59c82', bg: '#3b221a' },
+  rose: { fg: '#ff8da1', bg: '#3b1d25' },
+  teal: { fg: '#ff7426', bg: '#381812' },
+}
+
+export function resolveTone(tone: Tone, scheme: ColorScheme) {
+  return scheme === 'dark' ? darkTones[tone] : tones[tone]
+}
 
 export const space = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32 } as const
 
@@ -96,16 +120,17 @@ export type TypeRampEntry = {
   letterSpacing?: number
 }
 
-/** Base type ramp (pre-scale), mirrors the iOS-inspired hierarchy of the web prototype. */
+/** System-font hierarchy, scaled by both device and in-app text preferences. */
 export const typeRamp = {
-  pageTitle: { fontSize: 34, fontWeight: '700', letterSpacing: -1, lineHeight: 40 },
-  sheetTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.6, lineHeight: 26 },
-  sectionTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4, lineHeight: 26 },
+  pageTitle: { fontSize: 34, fontWeight: '700', letterSpacing: -0.6, lineHeight: 41 },
+  heroTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.8, lineHeight: 34 },
+  sheetTitle: { fontSize: 20, fontWeight: '600', letterSpacing: -0.3, lineHeight: 26 },
+  sectionTitle: { fontSize: 20, fontWeight: '600', letterSpacing: -0.3, lineHeight: 26 },
   headline: { fontSize: 22, fontWeight: '600', letterSpacing: -0.4, lineHeight: 28 },
-  body: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
-  bodyStrong: { fontSize: 16, fontWeight: '600', lineHeight: 24 },
-  caption: { fontSize: 13, fontWeight: '400', lineHeight: 19 },
-  small: { fontSize: 12, fontWeight: '400', lineHeight: 17 },
+  body: { fontSize: 17, fontWeight: '400', lineHeight: 24 },
+  bodyStrong: { fontSize: 17, fontWeight: '600', lineHeight: 24 },
+  caption: { fontSize: 15, fontWeight: '400', lineHeight: 21 },
+  small: { fontSize: 13, fontWeight: '400', lineHeight: 18 },
   eyebrow: { fontSize: 12, fontWeight: '600', letterSpacing: 0.6, lineHeight: 16 },
   tab: { fontSize: 11, fontWeight: '500', lineHeight: 14 },
 } as const satisfies Record<string, TypeRampEntry>

@@ -12,7 +12,7 @@ import { Note, PageHeader } from '@/components/ui/Layout'
 import { Screen } from '@/components/ui/Screen'
 import { Touchable } from '@/components/ui/Touchable'
 import { guides, type GuideKind } from '@/data/guides'
-import { brand, radius, space, typeRamp } from '@/theme/tokens'
+import { radius, space, touchTarget, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 
 const filters: { label: string; value: GuideKind | 'all' }[] = [
@@ -56,7 +56,7 @@ export default function GuidesScreen() {
         />
       </View>
 
-      <View style={styles.filters} accessibilityRole="radiogroup" accessibilityLabel="Guide categories">
+      <View style={[styles.filters, { backgroundColor: colors.line }]} accessibilityRole="radiogroup" accessibilityLabel="Guide categories">
         {filters.map((item) => {
           const active = filter === item.value
           return (
@@ -65,9 +65,9 @@ export default function GuidesScreen() {
               onPress={() => setFilter(item.value)}
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
-              style={[styles.chip, { backgroundColor: active ? brand.primary : colors.surface, borderColor: active ? brand.primary : colors.line }]}
+              style={[styles.chip, { backgroundColor: active ? colors.surface : 'transparent' }]}
             >
-              <AppText variant="caption" weight="600" style={active ? { color: brand.onPrimary } : undefined}>{item.label}</AppText>
+              <AppText variant="small" weight={active ? '600' : '400'} align="center">{item.label}</AppText>
             </Touchable>
           )
         })}
@@ -110,10 +110,10 @@ export default function GuidesScreen() {
 }
 
 const styles = StyleSheet.create({
-  search: { height: 48, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: space[3], flexDirection: 'row', alignItems: 'center', gap: space[2] },
-  input: { flex: 1, minWidth: 0, height: '100%' },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2], marginTop: space[3], marginBottom: space[4] },
-  chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space[3], paddingVertical: 6, minHeight: 36, justifyContent: 'center' },
+  search: { minHeight: 48, borderRadius: radius.md, paddingHorizontal: space[3], flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  input: { flex: 1, minWidth: 0, minHeight: 48, paddingVertical: space[3] },
+  filters: { flexDirection: 'row', padding: 3, borderRadius: radius.md, marginTop: space[3], marginBottom: space[6] },
+  chip: { flex: 1, borderRadius: radius.sm, paddingHorizontal: space[2], paddingVertical: space[2], minHeight: touchTarget, justifyContent: 'center' },
   results: { gap: space[5] },
   section: { gap: space[2] },
   sectionTitle: { marginHorizontal: space[1] },

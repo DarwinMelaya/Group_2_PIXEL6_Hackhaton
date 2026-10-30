@@ -1,0 +1,51 @@
+{
+  "generator": "Built-in image_gen",
+  "date": "2026-10-30",
+  "images": [
+    {
+      "name": "sunny",
+      "file": "assets/weather/sunny-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Generate a realistic bright tropical SUNNY DAY sky above Marinduque, Philippines. Rich clear blue sky, brilliant natural sunlight upper right, only a few delicate wisps at bottom right; unequivocally sunny, not overcast. Sky fills whole frame, no horizon, buildings, people, letters, numbers, symbols, borders or watermark. Natural atmospheric photography, polished restrained Apple Weather aesthetic. Smooth quiet darker blue left third for white UI text, detailed weather on right two thirds, no fake UI. Image must look beautiful at 960px wide."
+    },
+    {
+      "name": "partly-cloudy",
+      "file": "assets/weather/partly-cloudy-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. DAYTIME PARTLY CLOUDY: distinct soft white cumulus clouds scattered across a clearly visible blue sky, sunlight on cloud edges. A mixture of blue sky and clouds, not fully overcast. No rain."
+    },
+    {
+      "name": "overcast",
+      "file": "assets/weather/overcast-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. DAYTIME OVERCAST: the entire sky covered in thick layered grey clouds, darker slate blue-grey cloud base and detailed billowing clouds on right. No patches of clear blue sky, no sun, no rain or lightning."
+    },
+    {
+      "name": "rain",
+      "file": "assets/weather/rain-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. DAYTIME RAIN: a fully overcast tropical sky with heavy layered slate grey clouds and clearly visible falling diagonal rain streaks, especially across right half. Realistic rain shower, no sun, moon, stars, snow or lightning."
+    },
+    {
+      "name": "storm",
+      "file": "assets/weather/storm-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. THUNDERSTORM: menacing deep indigo cumulonimbus clouds, visible rain streaks and a distinct distant realistic lightning bolt on far right. Dark storm atmosphere, no sun or moon, no disaster damage."
+    },
+    {
+      "name": "night",
+      "file": "assets/weather/night-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. CLEAR NIGHT: deep navy blue tropical night sky, sparse realistic stars and a small crescent moon near upper right. No visible clouds, rain, sun or horizon. Elegant peaceful true nighttime."
+    },
+    {
+      "name": "cloudy-night",
+      "file": "assets/weather/cloudy-night-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. CLOUDY NIGHT: dark blue-grey tropical night sky filled with clearly visible thick rolling clouds, faint cool ambient moonlight outlining cloud edges. No visible moon disk, no sun, no stars, rain or lightning. Unequivocally nighttime and cloudy."
+    },
+    {
+      "name": "rain-night",
+      "file": "assets/weather/rain-night-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. RAINY NIGHT: dark navy and charcoal tropical night clouds, clearly visible falling rain streaks across right half, faint cold ambient illumination. No visible moon, stars, sunlight, snow or lightning. Clearly night rain."
+    },
+    {
+      "name": "drizzle",
+      "file": "assets/weather/drizzle-v2.jpg",
+      "prompt": "Use case: photorealistic-natural. Asset: full-bleed mobile weather-card background, wide landscape 3:2. Realistic atmospheric sky photography for a polished minimal weather app in tropical Philippines. Sky fills entire frame, no horizon, land, buildings, people, text, symbols, borders or watermark. Quiet darker left third for white UI text, detailed weather on right two thirds. No UI. DAYTIME DRIZZLE: soft layered pale slate-grey overcast tropical sky, fine sparse delicate falling rain streaks toward right. Quiet damp misty atmosphere and low clouds. Light rain rather than downpour, no lightning, sun, snow, or blue sky."
+    }
+  ]
+}

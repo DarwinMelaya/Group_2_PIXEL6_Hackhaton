@@ -32,7 +32,7 @@ export const profileGroups: ProfileGroup[] = [
     description: 'Your details and address in Marinduque.',
     icon: 'profile',
     fields: [
-      { key: 'name', label: 'Full name' },
+      { key: 'name', label: 'Full name', placeholder: 'Your full name' },
       { key: 'birthday', label: 'Date of birth', placeholder: 'YYYY-MM-DD', input: 'date' },
       { key: 'phone', label: 'Phone number', placeholder: 'e.g. 0917 123 4567', input: 'phone' },
       { key: 'municipality', label: 'Municipality', placeholder: 'Choose your municipality', input: 'municipality' },
@@ -46,9 +46,9 @@ export const profileGroups: ProfileGroup[] = [
     icon: 'heart',
     fields: [
       { key: 'blood', label: 'Blood type', placeholder: 'Choose your blood type', input: 'bloodType' },
-      { key: 'allergies', label: 'Allergies' },
-      { key: 'conditions', label: 'Medical conditions' },
-      { key: 'medications', label: 'Current medications' },
+      { key: 'allergies', label: 'Allergies', placeholder: 'e.g. Penicillin, seafood' },
+      { key: 'conditions', label: 'Medical conditions', placeholder: 'e.g. Asthma, hypertension' },
+      { key: 'medications', label: 'Current medications', placeholder: 'e.g. Maintenance medicines' },
     ],
   },
   {
@@ -57,8 +57,8 @@ export const profileGroups: ProfileGroup[] = [
     description: 'Someone to reach in an emergency.',
     icon: 'phone',
     fields: [
-      { key: 'contactName', label: 'Contact name' },
-      { key: 'relationship', label: 'Relationship' },
+      { key: 'contactName', label: 'Contact name', placeholder: 'Full name' },
+      { key: 'relationship', label: 'Relationship', placeholder: 'e.g. Parent, spouse, sibling' },
       { key: 'contactPhone', label: 'Phone number', placeholder: 'e.g. 0917 123 4567', input: 'phone' },
     ],
   },
