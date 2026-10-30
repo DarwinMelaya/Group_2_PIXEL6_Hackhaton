@@ -11,6 +11,7 @@ import { BackButton, Banner, Note, PageHeader, SectionHeader } from '@/component
 import { Screen } from '@/components/ui/Screen'
 import { Touchable } from '@/components/ui/Touchable'
 import { deletePhotoRow, insertPhoto, listPhotos, type Photo } from '@/db/photos'
+import { attachmentFromStored, stageAttachment, AttachmentError, type Attachment } from '@/services/attachment'
 import { deletePhotoFile, persistPhoto } from '@/storage/photos'
 import { radius, space } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
@@ -44,6 +45,36 @@ export default function CaptureScreen() {
       if (!result.canceled) setPending(result.assets[0])
     } catch {
       setError(source === 'camera' ? 'Unable to open the camera. Try again, or choose a photo instead.' : 'Unable to open your photos.')
+    }
+  }
+
+  /**
+   * Stages a photo for the chat composer. For a just-captured photo we persist it
+   * first so the attachment and its file name stay consistent.
+   */
+  const analyze = async (attachment: Attachment) => {
+    stageAttachment(attachment)
+    router.push('/chat')
+  }
+
+  const analyzePending = async () => {
+    if (!pending) return
+    setSaving(true)
+    try {
+      const fileName = await persistPhoto(pending.uri)
+      await analyze(await attachmentFromStored(fileName, pending.mimeType, pending.uri))
+    } catch (error) {
+      setError(error instanceof AttachmentError ? error.message : 'Unable to prepare that photo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const analyzeSaved = async (photo: Photo) => {
+    try {
+      await analyze(await attachmentFromStored(photo.fileName, undefined, photo.uri))
+    } catch (error) {
+      setError(error instanceof AttachmentError ? error.message : 'Unable to read that photo.')
     }
   }
 
@@ -100,6 +131,9 @@ export default function CaptureScreen() {
             <AppText variant="caption" tone="teal">Photo captured · Not yet saved</AppText>
           </View>
           <View style={styles.actions}>
+            <Button label="Ask GabAI" icon="chat" onPress={analyzePending} loading={saving} />
+          </View>
+          <View style={styles.actions}>
             <Button label="Discard" variant="secondary" onPress={() => setPending(null)} />
             <Button label="Save photo" onPress={save} loading={saving} />
           </View>
@@ -113,18 +147,23 @@ export default function CaptureScreen() {
 
       {photos.length > 0 && (
         <View style={styles.section}>
-          <SectionHeader title="Saved on this device" caption="Tap a photo to delete it" />
+          <SectionHeader title="Saved on this device" caption="Tap to delete · GabAI icon sends it to the chatbot" />
           <View style={styles.grid}>
             {photos.map((photo) => (
-              <Touchable key={photo.id} onPress={() => confirmDelete(photo)} accessibilityLabel={`Saved photo from ${new Date(photo.createdAt).toLocaleString()}. Tap to delete.`} style={styles.thumbWrap}>
-                <Image source={{ uri: photo.uri }} style={[styles.thumb, { backgroundColor: colors.surface }]} />
-              </Touchable>
+              <View key={photo.id} style={styles.thumbWrap}>
+                <Touchable onPress={() => confirmDelete(photo)} accessibilityLabel={`Saved photo from ${new Date(photo.createdAt).toLocaleString()}. Tap to delete.`}>
+                  <Image source={{ uri: photo.uri }} style={[styles.thumb, { backgroundColor: colors.surface }]} />
+                </Touchable>
+                <Touchable onPress={() => analyzeSaved(photo)} accessibilityLabel="Ask GabAI about this photo" style={[styles.thumbAction, { backgroundColor: colors.surface, borderColor: colors.line }]}>
+                  <Icon name="chat" size={14} color={colors.ink} />
+                </Touchable>
+              </View>
             ))}
           </View>
         </View>
       )}
 
-      <Note>Photos are stored only on this device. No upload, AI analysis, or diagnosis is performed.</Note>
+      <Note>Photos are stored on this device. They only leave your phone if you ask the chatbot to analyze one — then the photo is sent to Google Gemini. It never diagnoses; it only describes and suggests safety steps.</Note>
     </Screen>
   )
 }
@@ -142,4 +181,5 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -space[1] },
   thumbWrap: { width: '33.333%', padding: space[1] },
   thumb: { width: '100%', aspectRatio: 1, borderRadius: radius.md },
+  thumbAction: { position: 'absolute', top: space[2], right: space[2], width: 26, height: 26, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 })

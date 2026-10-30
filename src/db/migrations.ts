@@ -42,6 +42,30 @@ const migrations: ((db: SQLiteDatabase) => Promise<void>)[] = [
       );
     `)
   },
+  // Photo attachments on chat messages. `photo` holds the same reference the photos
+  // table uses: a file name on native, a data URI on web.
+  async (db) => {
+    await db.execAsync(`
+      ALTER TABLE chat_messages ADD COLUMN photo TEXT;
+      ALTER TABLE chat_messages ADD COLUMN photo_mime TEXT;
+    `)
+  },
+  // Widen the token_usage.source CHECK so the custom backend can record usage.
+  // SQLite cannot alter a CHECK constraint, so the table is rebuilt and counters copied.
+  async (db) => {
+    await db.execAsync(`
+      CREATE TABLE token_usage_new (
+        source TEXT PRIMARY KEY NOT NULL CHECK (source IN ('gemini', 'local', 'custom')),
+        requests INTEGER NOT NULL DEFAULT 0,
+        prompt_tokens INTEGER NOT NULL DEFAULT 0,
+        completion_tokens INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO token_usage_new (source, requests, prompt_tokens, completion_tokens)
+        SELECT source, requests, prompt_tokens, completion_tokens FROM token_usage;
+      DROP TABLE token_usage;
+      ALTER TABLE token_usage_new RENAME TO token_usage;
+    `)
+  },
 ]
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {

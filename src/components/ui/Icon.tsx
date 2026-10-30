@@ -7,7 +7,7 @@ export type IconName =
   | 'storm' | 'flood' | 'landslide' | 'quake' | 'fire' | 'bleeding' | 'burn' | 'choking' | 'fracture'
   | 'sun' | 'moon' | 'system' | 'send' | 'arrowLeft' | 'check' | 'profile' | 'heart' | 'settings'
   | 'download' | 'restore' | 'trash' | 'camera' | 'image' | 'close' | 'calendar' | 'chevronDown'
-  | 'cloud' | 'rain' | 'wind' | 'pin' | 'eye' | 'chart'
+  | 'cloud' | 'rain' | 'wind' | 'pin' | 'eye' | 'chart' | 'paperclip'
 
 /** Stroke icon set ported 1:1 from the web prototype (24×24 grid, 1.8 stroke). */
 const paths: Record<IconName, ReactNode> = {
@@ -52,6 +52,7 @@ const paths: Record<IconName, ReactNode> = {
   pin: <><Path d="M19 10c0 5-7 12-7 12S5 15 5 10a7 7 0 1 1 14 0Z"/><Circle cx="12" cy="10" r="2"/></>,
   eye: <><Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><Circle cx="12" cy="12" r="3"/></>,
   chart: <><Path d="M3 3v18h18"/><Path d="M18 17V9"/><Path d="M13 17V5"/><Path d="M8 17v-3"/></>,
+  paperclip: <Path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>,
 }
 
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color: ColorValue }) {

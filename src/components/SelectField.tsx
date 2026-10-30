@@ -20,10 +20,12 @@ type SelectFieldProps = {
   disabled?: boolean
   disabledHint?: string
   error?: boolean
+  /** Shows the options as a centered dialog instead of a bottom sheet. */
+  centered?: boolean
 }
 
-/** Pressable field that opens a searchable option sheet. Works on iOS, Android, and web. */
-export function SelectField({ label, value, placeholder, options, onChange, disabled, disabledHint, error }: SelectFieldProps) {
+/** Pressable field that opens a searchable option picker. Works on iOS, Android, and web. */
+export function SelectField({ label, value, placeholder, options, onChange, disabled, disabledHint, error, centered }: SelectFieldProps) {
   const { colors, scale } = useTheme()
   const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
@@ -51,9 +53,15 @@ export function SelectField({ label, value, placeholder, options, onChange, disa
       </Touchable>
       {disabled && disabledHint ? <AppText variant="small" tone="soft" style={styles.hint}>{disabledHint}</AppText> : null}
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
-        <View style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + space[4] }]}>
+      <Modal visible={open} transparent animationType={centered ? 'fade' : 'slide'} onRequestClose={() => setOpen(false)}>
+        <View style={centered ? styles.centerWrap : styles.sheetWrap}>
+          <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
+          <View
+            style={[
+              centered ? styles.dialog : styles.sheet,
+              { backgroundColor: colors.surface, paddingBottom: centered ? space[4] : insets.bottom + space[4] },
+            ]}
+          >
           <AppText variant="headline" style={styles.title}>{label}</AppText>
           {options.length > SEARCH_THRESHOLD && (
             <TextInput
@@ -85,8 +93,9 @@ export function SelectField({ label, value, placeholder, options, onChange, disa
               )}
             />
           )}
-          <View style={styles.close}>
-            <Button label="Close" variant="secondary" onPress={() => setOpen(false)} />
+            <View style={styles.close}>
+              <Button label="Close" variant="secondary" onPress={() => setOpen(false)} />
+            </View>
           </View>
         </View>
       </Modal>
@@ -98,8 +107,11 @@ const styles = StyleSheet.create({
   field: { flexDirection: 'row', alignItems: 'center', gap: space[2], borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], minHeight: touchTarget },
   value: { flex: 1, minWidth: 0 },
   hint: { marginTop: space[1] },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheetWrap: { flex: 1 },
+  centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space[5] },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '80%', borderTopLeftRadius: radius.group, borderTopRightRadius: radius.group, padding: space[4], gap: space[3] },
+  dialog: { width: '100%', maxWidth: 360, maxHeight: '70%', borderRadius: radius.group, padding: space[4], gap: space[3] },
   title: { marginTop: space[1] },
   search: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], minHeight: touchTarget },
   empty: { paddingVertical: space[5] },

@@ -17,6 +17,13 @@ export async function persistPhoto(sourceUri: string): Promise<string> {
   return toDataUri(await response.blob())
 }
 
+/** Photos are data URIs on web, so the base64 payload is everything after the comma. */
+export async function readPhotoBase64(fileName: string): Promise<string> {
+  const comma = fileName.indexOf(',')
+  if (!fileName.startsWith('data:') || comma < 0) throw new Error('This photo is not stored inline.')
+  return fileName.slice(comma + 1)
+}
+
 export function deletePhotoFile(_fileName: string) {}
 
 export function deleteAllPhotoFiles() {}

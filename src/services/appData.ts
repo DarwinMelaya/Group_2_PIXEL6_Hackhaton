@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite'
 
 import { deleteAllPhotoFiles } from '@/storage/photos'
-import { deleteGeminiKey } from '@/storage/secrets'
+import { deleteBackendToken, deleteGeminiKey } from '@/storage/secrets'
 
 /** Wipes all user data (profile, chat history, saved photos, preferences). Bundled guides are unaffected. */
 export async function clearAllData(db: SQLiteDatabase) {
@@ -10,4 +10,5 @@ export async function clearAllData(db: SQLiteDatabase) {
   })
   deleteAllPhotoFiles()
   await deleteGeminiKey()
+  await deleteBackendToken()
 }

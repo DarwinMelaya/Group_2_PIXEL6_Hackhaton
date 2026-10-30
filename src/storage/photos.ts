@@ -18,6 +18,11 @@ export async function persistPhoto(sourceUri: string): Promise<string> {
   return fileName
 }
 
+/** Reads a stored photo back as base64, for sending to a vision model. */
+export async function readPhotoBase64(fileName: string): Promise<string> {
+  return new File(photosDirectory(), fileName).base64()
+}
+
 export function deletePhotoFile(fileName: string) {
   const file = new File(photosDirectory(), fileName)
   if (file.exists) file.delete()

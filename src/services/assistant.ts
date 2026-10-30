@@ -2,9 +2,11 @@ import type { ChatMessage } from '@/db/chat'
 import type { ReplyLength, Settings } from '@/db/settings'
 import type { TokenUsage, UsageSource } from '@/db/tokenUsage'
 import { guides, type Guide } from '@/data/guides'
-import { generateGemini, GeminiError } from '@/services/gemini'
+import { BackendError, generateBackend } from '@/services/customBackend'
+import { generateGemini, GeminiError, type GeminiImage } from '@/services/gemini'
+import { modelLabel, resolveModel } from '@/services/geminiModels'
 import { generateLocal, getLocalModelStatus, LOCAL_MODEL } from '@/services/localModel'
-import { getGeminiKey } from '@/storage/secrets'
+import { getBackendToken, getGeminiKey } from '@/storage/secrets'
 
 const KIT_TERMS = ['kit', 'go-bag', 'go bag', 'emergency bag', 'prepare', 'supplies']
 
@@ -29,6 +31,15 @@ const SYSTEM_PROMPT =
 
 const HISTORY_LIMIT = 10
 const N_PREDICT = { short: 320, detailed: 900 } as const
+
+/** Sent instead of SYSTEM_PROMPT when a photo is attached. */
+const VISION_PROMPT =
+  'You are GabAI, an offline-first safety assistant for Marinduque, Philippines. ' +
+  'The user attached a photo. Describe what is visible and give first-aid or preparedness steps for what you see. ' +
+  'Never diagnose. If the photo suggests an injury or a medical condition, say so and advise seeing a health professional. ' +
+  'Reply in the same language the user used (English, Tagalog, or Taglish). ' +
+  'For life-threatening emergencies, tell them to call 911 first. ' +
+  'If the photo is unrelated to safety, say so and point the user to the Guides tab.'
 
 /**
  * Cloud length control has to go through the prompt: Gemini counts thought tokens
@@ -73,7 +84,9 @@ export function guideReply(question: string): string {
   return `${guide.name} · ${phase.label}\n${steps}\n\nOpen the ${guide.name} guide in the Safety library for the full steps.`
 }
 
-function buildSystem(question: string, length: ReplyLength): string {
+function buildSystem(question: string, length: ReplyLength, hasImage: boolean): string {
+  // Guide retrieval is keyword-based; it cannot ground an answer about pixels.
+  if (hasImage) return `${VISION_PROMPT} ${LENGTH_PROMPT[length]}`
   const base = `${SYSTEM_PROMPT} ${LENGTH_PROMPT[length]}`
   const guide = findGuide(question)
   if (!guide) return base
@@ -94,11 +107,24 @@ async function localReply(system: string, history: { role: 'user' | 'assistant';
  * Dispatcher: cloud mode tries Gemini first, then falls back to the on-device
  * model, then to bundled-guide retrieval. Always resolves with an answer.
  * `usage` is set when a real model generated the reply (guide retrieval has no tokens).
+ *
+ * `image` is only analyzed by cloud models — the bundled Gemma build and the guide
+ * library are text-only, so attaching a photo needs a working Gemini key or the
+ * reply degrades to a text-only answer with a notice.
  */
-export async function generateReply(question: string, history: ChatMessage[], settings: Settings): Promise<{ text: string; notice?: string; usage?: TokenUsage & { source: UsageSource } }> {
-  const system = buildSystem(question, settings.localReplyLength)
-  const modelHistory = [...history.slice(-HISTORY_LIMIT), { role: 'user' as const, body: question }]
+export async function generateReply(
+  question: string,
+  history: ChatMessage[],
+  settings: Settings,
+  image?: GeminiImage,
+): Promise<{ text: string; notice?: string; model?: string; usage?: TokenUsage & { source: UsageSource } }> {
+  const system = buildSystem(question, settings.localReplyLength, Boolean(image))
+  // Earlier photo messages keep their file in the bubble but are not re-sent each turn;
+  // re-uploading every image per request would burn quota and latency.
+  const modelHistory = history.slice(-HISTORY_LIMIT)
     .map((message) => ({ role: message.role, text: message.body }))
+  const questionText = question || (image ? 'What can you tell me about this photo? Please keep me safe.' : '')
+  const current: { role: 'user' | 'assistant'; text: string; image?: GeminiImage } = { role: 'user', text: questionText, image }
   const nPredict = N_PREDICT[settings.localReplyLength]
 
   let notice: string | undefined
@@ -107,19 +133,41 @@ export async function generateReply(question: string, history: ChatMessage[], se
     if (!apiKey) {
       notice = 'Cloud AI is not set up. Answered offline.'
     } else {
+      const resolved = await resolveModel(apiKey, settings.geminiModel, { needsVision: Boolean(image) })
+      if (resolved.substituted) notice = `Switched to ${modelLabel(resolved.model)} (${resolved.reason}).`
       try {
-        const result = await generateGemini({ apiKey, model: settings.geminiModel, system, history: modelHistory })
-        return { text: result.text, usage: { source: 'gemini', ...result.usage } }
+        const result = await generateGemini({ apiKey, model: resolved.model, system, history: [...modelHistory, current] })
+        return { text: result.text, model: resolved.model, notice, usage: { source: 'gemini', ...result.usage } }
       } catch (error) {
-        notice = `${error instanceof GeminiError ? error.message : 'Gemini is unavailable.'} Answered offline.`
+        notice = `${notice ? `${notice} ` : ''}${error instanceof GeminiError ? error.message : 'Gemini is unavailable.'} Answered offline.`
       }
     }
+  } else if (settings.aiMode === 'custom') {
+    if (!settings.backendUrl || !settings.backendModel) {
+      notice = 'Custom backend is not set up. Answered offline.'
+    } else {
+      try {
+        const result = await generateBackend({
+          url: settings.backendUrl,
+          model: settings.backendModel,
+          token: await getBackendToken().catch(() => null),
+          system,
+          history: [...modelHistory, current],
+        })
+        return { text: result.text, model: settings.backendModel, notice, usage: { source: 'custom', ...result.usage } }
+      } catch (error) {
+        notice = `${error instanceof BackendError ? error.message : 'The backend is unavailable.'} Answered offline.`
+      }
+    }
+  } else if (image) {
+    notice = 'Photo analysis needs Cloud AI, which is off. Answered from your text only.'
   }
 
-  const local = await localReply(system, modelHistory, nPredict)
+  if (image && !notice) notice = 'Photo analysis needs Cloud AI. Answered from your text only.'
+  const local = await localReply(system, [...modelHistory, { role: 'user' as const, text: questionText }], nPredict)
   if (local) return notice ? { text: local.text, usage: { source: 'local', ...local.usage }, notice } : { text: local.text, usage: { source: 'local', ...local.usage } }
   if (!notice && settings.aiMode === 'local' && getLocalModelStatus() !== 'ready') {
     notice = `Download ${LOCAL_MODEL.name} in Chat settings for full AI answers. Showing guide steps.`
   }
-  return { text: guideReply(question), notice }
+  return { text: guideReply(questionText || 'photo'), notice }
 }

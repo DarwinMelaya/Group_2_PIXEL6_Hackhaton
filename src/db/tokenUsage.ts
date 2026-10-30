@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'
 
-export type UsageSource = 'gemini' | 'local'
+export type UsageSource = 'gemini' | 'local' | 'custom'
 
 export type TokenUsage = { promptTokens: number; completionTokens: number }
 

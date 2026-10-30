@@ -1,4 +1,4 @@
-import { THINKING_LEVELS, type GeminiModel } from '@/data/ai'
+import { thinkingLevelFor } from '@/data/ai'
 import type { TokenUsage } from '@/db/tokenUsage'
 
 /** Thinking models are slow on a non-streaming call; 20s was tripping on normal replies. */
@@ -10,7 +10,20 @@ export class GeminiError extends Error {
   }
 }
 
-type GeminiHistoryMessage = { role: 'user' | 'assistant'; text: string }
+/** Base64 image bytes sent inline. Keep well under the 20MB total request cap. */
+export type GeminiImage = { mimeType: string; data: string }
+
+type GeminiHistoryMessage = { role: 'user' | 'assistant'; text: string; image?: GeminiImage }
+
+type GeminiPart = { text: string } | { inlineData: GeminiImage }
+
+/** Image first, then the question: Gemini follows instructions about an image better in that order. */
+function toParts(message: GeminiHistoryMessage): GeminiPart[] {
+  const parts: GeminiPart[] = []
+  if (message.image) parts.push({ inlineData: message.image })
+  if (message.text) parts.push({ text: message.text })
+  return parts.length ? parts : [{ text: '' }]
+}
 
 type GeminiErrorBody = { error?: { message?: string; status?: string; details?: { reason?: string }[] } }
 
@@ -51,11 +64,11 @@ export async function generateGemini({ apiKey, model, system, history }: { apiKe
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: history.map((message) => ({ role: message.role === 'assistant' ? 'model' : 'user', parts: [{ text: message.text }] })),
+        contents: history.map((message) => ({ role: message.role === 'assistant' ? 'model' : 'user', parts: toParts(message) })),
         generationConfig: {
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           temperature: 0.4,
-          thinkingConfig: { thinkingLevel: THINKING_LEVELS[model as GeminiModel] ?? 'low' },
+          thinkingConfig: { thinkingLevel: thinkingLevelFor(model) },
         },
       }),
       signal: controller.signal,

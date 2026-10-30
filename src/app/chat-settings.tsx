@@ -15,9 +15,11 @@ import { GEMINI_MODELS } from '@/data/ai'
 import type { AiMode, ReplyLength } from '@/db/settings'
 import { useSettings } from '@/providers/SettingsProvider'
 import { getDeviceSpecs, localAiCapability, OFFLINE_AI_MIN_FREE_GB, OFFLINE_AI_RECOMMENDED_RAM_GB } from '@/services/deviceSpecs'
+import { BackendError, testBackend } from '@/services/customBackend'
 import { GeminiError, testGeminiKey } from '@/services/gemini'
+import { clearModelCache, fetchAvailableModels, resolveModel } from '@/services/geminiModels'
 import { LOCAL_MODEL, useLocalModel } from '@/services/localModel'
-import { deleteGeminiKey, getGeminiKey, setGeminiKey } from '@/storage/secrets'
+import { deleteBackendToken, deleteGeminiKey, getBackendToken, getGeminiKey, setBackendToken, setGeminiKey } from '@/storage/secrets'
 import { radius, space, typeRamp } from '@/theme/tokens'
 import { useTheme } from '@/theme/useTheme'
 import { confirmAction } from '@/utils/dialogs'
@@ -27,7 +29,24 @@ type Feedback = { text: string; error?: boolean } | null
 const AI_MODES: { value: AiMode; label: string; detail: string }[] = [
   { value: 'local', label: 'Local AI', detail: 'Gemma 4 E2B on your phone. Works offline.' },
   { value: 'cloud', label: 'Cloud AI', detail: 'Google Gemini. Needs internet.' },
+  { value: 'custom', label: 'Custom backend', detail: 'Your own OpenAI-compatible server (Ollama, LM Studio, llama.cpp…).' },
 ]
+
+/** Popup shown before switching AI mode, so the privacy tradeoff is explicit. */
+const MODE_NOTES: Record<AiMode, { title: string; message: string }> = {
+  local: {
+    title: 'Use Local AI?',
+    message: 'Gemma 4 E2B runs entirely on this device. Nothing you type leaves your phone, and it works without internet — but it needs a 2.8 GB download and is slower on older phones.',
+  },
+  cloud: {
+    title: 'Use Cloud AI?',
+    message: 'Replies come from Google Gemini over the internet, and attached photos are uploaded for analysis. It needs a free API key and a connection. Avoid sharing personal health details.',
+  },
+  custom: {
+    title: 'Use a custom backend?',
+    message: 'Messages — and any attached photos — go to the server you configure, not Google. Make sure you trust that server before chatting.',
+  },
+}
 
 const REPLY_LENGTHS: { value: ReplyLength; label: string }[] = [
   { value: 'short', label: 'Short' },
@@ -50,15 +69,32 @@ export default function ChatSettingsScreen() {
   const [feedback, setFeedback] = useState<Feedback>(null)
   const [apiKey, setApiKey] = useState('')
   const [savedKey, setSavedKey] = useState('')
+  const [backendUrl, setBackendUrl] = useState(settings.backendUrl)
+  const [backendModel, setBackendModel] = useState(settings.backendModel)
+  const [backendToken, setBackendTokenDraft] = useState('')
+  const [savedToken, setSavedToken] = useState('')
   const [busy, setBusy] = useState(false)
   const [specs] = useState(getDeviceSpecs)
+  /** Model ids this API key can reach; null while unknown (never fetched). */
+  const [available, setAvailable] = useState<string[] | null>(null)
 
   const selectedMode = AI_MODES.find((option) => option.value === settings.aiMode) ?? AI_MODES[0]
   const capability = localAiCapability(specs)
 
   useEffect(() => {
     getGeminiKey().then((key) => setSavedKey(key ?? '')).catch(() => setSavedKey(''))
+    getBackendToken().then((token) => setSavedToken(token ?? '')).catch(() => setSavedToken(''))
   }, [])
+
+  // Discover which catalog models the saved key can actually call.
+  useEffect(() => {
+    if (settings.aiMode !== 'cloud' || !savedKey) return
+    let cancelled = false
+    fetchAvailableModels(savedKey).then((models) => {
+      if (!cancelled) setAvailable(models)
+    })
+    return () => { cancelled = true }
+  }, [savedKey, settings.aiMode])
 
   const modelStatusLabel = () => {
     switch (model.status) {
@@ -107,7 +143,9 @@ export default function ChatSettingsScreen() {
     setBusy(true)
     try {
       await setGeminiKey(trimmed)
+      clearModelCache()
       setSavedKey(trimmed)
+      setAvailable(null)
       setApiKey('')
       setFeedback({ text: 'API key saved.' })
     } catch {
@@ -125,6 +163,7 @@ export default function ChatSettingsScreen() {
     try {
       await deleteGeminiKey()
       setSavedKey('')
+      setAvailable(null)
     } catch {
       setFeedback({ text: 'Unable to remove the API key. Please try again.', error: true })
     } finally {
@@ -137,10 +176,68 @@ export default function ChatSettingsScreen() {
     if (!savedKey) return
     setBusy(true)
     try {
-      await testGeminiKey(savedKey, settings.geminiModel)
-      setFeedback({ text: 'Connected to Gemini.' })
+      const resolved = await resolveModel(savedKey, settings.geminiModel)
+      await testGeminiKey(savedKey, resolved.model)
+      setFeedback({ text: `Connected to Gemini (${resolved.model}).` })
     } catch (error) {
       setFeedback({ text: error instanceof GeminiError ? error.message : 'Unable to reach Gemini. Please try again.', error: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const saveBackend = async () => {
+    setFeedback(null)
+    const url = backendUrl.trim()
+    const modelName = backendModel.trim()
+    if (!url || !modelName) {
+      setFeedback({ text: 'Enter both the server URL and the model name.', error: true })
+      return
+    }
+    setBusy(true)
+    try {
+      await updateSettings({ backendUrl: url, backendModel: modelName })
+      const token = backendToken.trim()
+      if (token) {
+        await setBackendToken(token)
+        setSavedToken(token)
+        setBackendTokenDraft('')
+      }
+      setFeedback({ text: 'Backend saved.' })
+    } catch {
+      setFeedback({ text: 'Unable to save the backend settings. Please try again.', error: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeBackendToken = async () => {
+    setFeedback(null)
+    const confirmed = await confirmAction({ title: 'Remove the bearer token?', message: 'The backend will be called without a token.', confirmLabel: 'Remove', destructive: true })
+    if (!confirmed) return
+    setBusy(true)
+    try {
+      await deleteBackendToken()
+      setSavedToken('')
+    } catch {
+      setFeedback({ text: 'Unable to remove the token. Please try again.', error: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const testBackendConnection = async () => {
+    setFeedback(null)
+    if (!settings.backendUrl || !settings.backendModel) {
+      setFeedback({ text: 'Save the backend settings first.', error: true })
+      return
+    }
+    setBusy(true)
+    try {
+      await testBackend(settings.backendUrl, settings.backendModel, await getBackendToken().catch(() => null))
+      setFeedback({ text: `Connected — ${settings.backendModel} answered.` })
+    } catch (error) {
+      setFeedback({ text: error instanceof BackendError ? error.message : 'Unable to reach the backend. Please try again.', error: true })
     } finally {
       setBusy(false)
     }
@@ -154,13 +251,17 @@ export default function ChatSettingsScreen() {
       <View style={styles.section}>
         <SettingsLabel>AI mode</SettingsLabel>
         <SelectField
+          centered
           label="AI mode"
           value={selectedMode.label}
           placeholder="Choose AI mode"
           options={AI_MODES.map((option) => option.label)}
           onChange={(label) => {
             const option = AI_MODES.find((item) => item.label === label)
-            if (option) updateSettings({ aiMode: option.value })
+            if (!option || option.value === settings.aiMode) return
+            const note = MODE_NOTES[option.value]
+            void confirmAction({ title: note.title, message: note.message, confirmLabel: `Switch to ${option.label}` })
+              .then((confirmed) => { if (confirmed) void updateSettings({ aiMode: option.value }) })
           }}
         />
         <AppText variant="small" tone="soft" style={styles.footnote}>{selectedMode.detail}</AppText>
@@ -258,20 +359,39 @@ export default function ChatSettingsScreen() {
             </View>
           )}
           <View style={[styles.card, styles.models, { backgroundColor: colors.surface }]} accessibilityRole="radiogroup" accessibilityLabel="Gemini model">
+            <Touchable
+              onPress={() => updateSettings({ geminiModel: 'auto' })}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: settings.geminiModel === 'auto' }}
+              style={styles.modelRow}
+            >
+              <View style={styles.checkSlot} />
+              <View style={styles.modelBody}>
+                <AppText weight="500" align="center">Automatic</AppText>
+                <AppText variant="small" tone="soft" align="center">
+                  {available && available.length > 0
+                    ? `Using ${GEMINI_MODELS.find((option) => option.id === available[0])?.label ?? available[0]}`
+                    : 'Picks the best model your key allows'}
+                </AppText>
+              </View>
+              <View style={styles.checkSlot}>{settings.geminiModel === 'auto' && <Icon name="check" size={18} color={colors.teal} />}</View>
+            </Touchable>
             {GEMINI_MODELS.map((option) => {
               const selected = settings.geminiModel === option.id
+              const unavailable = available !== null && !available.includes(option.id)
               return (
                 <Touchable
                   key={option.id}
                   onPress={() => updateSettings({ geminiModel: option.id })}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  style={styles.modelRow}
+                  accessibilityState={{ selected, disabled: unavailable }}
+                  disabled={unavailable}
+                  style={[styles.modelRow, unavailable && styles.modelUnavailable]}
                 >
                   <View style={styles.checkSlot} />
                   <View style={styles.modelBody}>
-                    <AppText weight="500" align="center">{option.label}</AppText>
-                    <AppText variant="small" tone="soft" align="center">{option.detail}</AppText>
+                    <AppText weight="500" align="center" tone={unavailable ? 'soft' : 'default'}>{option.label}</AppText>
+                    <AppText variant="small" tone="soft" align="center">{unavailable ? 'Not available on this API key' : option.detail}</AppText>
                   </View>
                   <View style={styles.checkSlot}>{selected && <Icon name="check" size={18} color={colors.teal} />}</View>
                 </Touchable>
@@ -291,6 +411,59 @@ export default function ChatSettingsScreen() {
             </View>
           </View>
           <AppText variant="small" tone="soft" style={styles.footnote}>The free tier has daily limits. When Cloud AI is on, your messages are sent to Google to generate replies. Avoid sharing personal health details. If the cloud is unavailable, GabAI answers offline.</AppText>
+        </View>
+      )}
+
+      {settings.aiMode === 'custom' && (
+        <View style={styles.section}>
+          <SettingsLabel>Custom backend · OpenAI-compatible</SettingsLabel>
+          {savedToken ? (
+            <GroupedCard>
+              <ListRow title="Bearer token saved" subtitle={`•••• ${savedToken.slice(-4)}`} leading="check" />
+              <ListRow title="Remove bearer token" subtitle="Delete the saved token" leading="trash" destructive onPress={removeBackendToken} />
+            </GroupedCard>
+          ) : null}
+          <View style={[styles.card, styles.backendCard, { backgroundColor: colors.surface }]}>
+            <TextInput
+              value={backendUrl}
+              onChangeText={setBackendUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              placeholder="Server URL, e.g. http://192.168.1.5:11434"
+              placeholderTextColor={colors.inkSoft}
+              accessibilityLabel="Backend server URL"
+              style={[styles.input, { color: colors.ink, borderColor: colors.line, fontSize: typeRamp.body.fontSize * scale }]}
+            />
+            <TextInput
+              value={backendModel}
+              onChangeText={setBackendModel}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="Model name, e.g. gemma3:4b"
+              placeholderTextColor={colors.inkSoft}
+              accessibilityLabel="Backend model name"
+              style={[styles.input, { color: colors.ink, borderColor: colors.line, fontSize: typeRamp.body.fontSize * scale }]}
+            />
+            <TextInput
+              value={backendToken}
+              onChangeText={setBackendTokenDraft}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder={savedToken ? 'New bearer token (blank keeps saved one)' : 'Bearer token (optional)'}
+              placeholderTextColor={colors.inkSoft}
+              accessibilityLabel="Backend bearer token"
+              style={[styles.input, { color: colors.ink, borderColor: colors.line, fontSize: typeRamp.body.fontSize * scale }]}
+            />
+            <View style={styles.actions}>
+              <Button label="Save" loading={busy} onPress={saveBackend} />
+            </View>
+          </View>
+          <View style={styles.actions}>
+            <Button label="Test connection" variant="secondary" disabled={!settings.backendUrl || !settings.backendModel} loading={busy} onPress={testBackendConnection} />
+          </View>
+          <AppText variant="small" tone="soft" style={styles.footnote}>Works with OpenAI-compatible servers — Ollama, LM Studio, llama.cpp, vLLM. GabAI posts to /v1/chat/completions on your URL; enter the base address or a path ending in /v1. Photos are sent only when the backend supports vision. If it is unreachable, GabAI answers offline.</AppText>
         </View>
       )}
 
@@ -319,8 +492,10 @@ const styles = StyleSheet.create({
   segmentSelected: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[3], paddingVertical: space[3] },
   models: { marginTop: space[3], padding: space[1] },
+  backendCard: { marginTop: space[3], gap: space[3] },
   modelRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], padding: space[3] },
   modelBody: { flex: 1, minWidth: 0, alignItems: 'center' },
+  modelUnavailable: { opacity: 0.45 },
   checkSlot: { width: 18, alignItems: 'center' },
   guideTitle: { marginBottom: space[2] },
   guideStep: { marginBottom: space[1] },

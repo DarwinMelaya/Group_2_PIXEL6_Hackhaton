@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'
 
-import { isGeminiModel, type GeminiModel } from '@/data/ai'
+import { isGeminiModelChoice, type GeminiModelChoice } from '@/data/ai'
 import { textSizes, type TextSize } from '@/theme/tokens'
 
 export const APPEARANCES = ['system', 'light', 'dark'] as const
@@ -8,15 +8,15 @@ export type Appearance = (typeof APPEARANCES)[number]
 
 export const NICKNAME_MAX_LENGTH = 40
 
-export const AI_MODES = ['local', 'cloud'] as const
+export const AI_MODES = ['local', 'cloud', 'custom'] as const
 export type AiMode = (typeof AI_MODES)[number]
 
 export const REPLY_LENGTHS = ['short', 'detailed'] as const
 export type ReplyLength = (typeof REPLY_LENGTHS)[number]
 
-export type Settings = { appearance: Appearance; textSize: TextSize; nickname: string; onboarded: boolean; aiMode: AiMode; localReplyLength: ReplyLength; geminiModel: GeminiModel }
+export type Settings = { appearance: Appearance; textSize: TextSize; nickname: string; onboarded: boolean; aiMode: AiMode; localReplyLength: ReplyLength; geminiModel: GeminiModelChoice; backendUrl: string; backendModel: string }
 
-export const defaultSettings: Settings = { appearance: 'system', textSize: 'standard', nickname: '', onboarded: false, aiMode: 'local', localReplyLength: 'short', geminiModel: 'gemini-3.5-flash-lite' }
+export const defaultSettings: Settings = { appearance: 'system', textSize: 'standard', nickname: '', onboarded: false, aiMode: 'local', localReplyLength: 'short', geminiModel: 'auto', backendUrl: '', backendModel: '' }
 
 export const isAppearance = (value: unknown): value is Appearance => APPEARANCES.includes(value as Appearance)
 export const isTextSize = (value: unknown): value is TextSize => typeof value === 'string' && value in textSizes
@@ -37,7 +37,9 @@ export async function readSettings(db: SQLiteDatabase): Promise<Settings> {
     onboarded: stored.onboarded === 'true',
     aiMode: isAiMode(stored.aiMode) ? stored.aiMode : defaultSettings.aiMode,
     localReplyLength: isReplyLength(stored.localReplyLength) ? stored.localReplyLength : defaultSettings.localReplyLength,
-    geminiModel: isGeminiModel(stored.geminiModel) ? stored.geminiModel : defaultSettings.geminiModel,
+    geminiModel: isGeminiModelChoice(stored.geminiModel) ? stored.geminiModel : defaultSettings.geminiModel,
+    backendUrl: typeof stored.backendUrl === 'string' ? stored.backendUrl.trim() : '',
+    backendModel: typeof stored.backendModel === 'string' ? stored.backendModel.trim() : '',
   }
 }
 
